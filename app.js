@@ -81,6 +81,7 @@ const nameInput = document.querySelector("#nameInput");
 const phoneInput = document.querySelector("#phoneInput");
 const cpfInput = document.querySelector("#cpfInput");
 const notesInput = document.querySelector("#notesInput");
+const professionalOptions = document.querySelector("#professionalOptions");
 const tagOptions = document.querySelector("#tagOptions");
 const formError = document.querySelector("#formError");
 const submitLabel = document.querySelector("#submitLabel");
@@ -105,6 +106,7 @@ const yearProspects = document.querySelector("#yearProspects");
 const weekReturns = document.querySelector("#weekReturns");
 const monthReturns = document.querySelector("#monthReturns");
 const yearReturns = document.querySelector("#yearReturns");
+const analysisProfessionalPerformance = document.querySelector("#analysisProfessionalPerformance");
 const prevMonthBtn = document.querySelector("#prevMonthBtn");
 const nextMonthBtn = document.querySelector("#nextMonthBtn");
 const calendarMonthLabel = document.querySelector("#calendarMonthLabel");
@@ -117,6 +119,7 @@ let currentContext = null;
 let stores = [];
 let prospects = [];
 let availableTags = ["Receita vencida", "Aniversário"];
+let availableProfessionals = [];
 let dailyGoal = 15;
 let calendarDate = new Date();
 let adminPeriodByStore = {};
@@ -137,6 +140,10 @@ function cleanUsername(value) {
 
 function cleanTag(value) {
   return String(value || "").trim().replace(/\s+/g, " ").slice(0, 40);
+}
+
+function cleanProfessionalName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 80);
 }
 
 function escapeHtml(value) {
@@ -269,6 +276,10 @@ function getSelectedTags() {
   return Array.from(tagOptions.querySelectorAll('input[name="tags"]:checked')).map((input) => input.value);
 }
 
+function getSelectedProfessionalId() {
+  return professionalOptions.querySelector('input[name="professional"]:checked')?.value || null;
+}
+
 function setSelectedTags(tags = []) {
   const selected = new Set(tags);
   tagOptions.querySelectorAll('input[name="tags"]').forEach((input) => {
@@ -303,6 +314,15 @@ function getSupabaseErrorMessage(error) {
   if (error.status === 429 || error.code === "over_request_rate_limit") return "Muitas tentativas em pouco tempo. Aguarde alguns minutos.";
   if (error.message?.includes("Invalid login credentials")) return "Usuário ou senha inválidos.";
   if (error.message?.includes("Email not confirmed")) return "Desative a confirmação de email no Supabase para usar login por usuário.";
+  if (
+    error.message?.includes("admin_create_professional") ||
+    error.message?.includes("admin_get_professionals") ||
+    error.message?.includes("store_get_professionals") ||
+    error.message?.includes("p_professional_id") ||
+    error.message?.includes("professional_id")
+  ) {
+    return "Atualize o banco no Supabase: rode o arquivo supabase_profissionais_prospeccao.sql no SQL Editor.";
+  }
   return error.message || "Algo deu errado. Tente novamente.";
 }
 
@@ -347,6 +367,7 @@ function resetForm() {
   formError.textContent = "";
   setSelectedColor("blue");
   setSelectedTags([]);
+  renderProfessionalOptions();
 }
 
 function resetAuthForm() {
@@ -439,6 +460,7 @@ function buildSearchText(prospect) {
     prospect.phone,
     prospect.cpf,
     prospect.notes,
+    prospect.professionalName,
     ...(prospect.tags || []),
     prospect.color,
     getColorLabel(prospect.color),
@@ -560,6 +582,76 @@ function createPeriodButton(store, period, label, selectedPeriod) {
   return button;
 }
 
+function createProfessionalPerformance(store, periodProspects) {
+  const panel = document.createElement("section");
+  panel.className = "admin-professional-performance";
+  panel.innerHTML = `
+    <div class="admin-professional-performance-header">
+      <h4>Desempenho por profissional</h4>
+      <span>Feitas, voltaram e conversão</span>
+    </div>
+    <div class="admin-professional-list"></div>
+  `;
+  const list = panel.querySelector(".admin-professional-list");
+  const statsByKey = new Map();
+
+  (store.professionals || []).forEach((professional) => {
+    statsByKey.set(professional.id, {
+      id: professional.id,
+      name: professional.name,
+      made: 0,
+      returned: 0,
+      isActive: professional.isActive,
+    });
+  });
+
+  periodProspects.forEach((prospect) => {
+    const matchingProfessional = !prospect.professionalId && prospect.professionalName
+      ? (store.professionals || []).find((professional) => normalize(professional.name) === normalize(prospect.professionalName))
+      : null;
+    const key = prospect.professionalId || matchingProfessional?.id || (prospect.professionalName ? `name:${normalize(prospect.professionalName)}` : "missing");
+    if (!statsByKey.has(key)) {
+      statsByKey.set(key, {
+        id: prospect.professionalId || matchingProfessional?.id || "",
+        name: matchingProfessional?.name || prospect.professionalName || "Sem profissional",
+        made: 0,
+        returned: 0,
+        isActive: true,
+      });
+    }
+    const stats = statsByKey.get(key);
+    stats.made += 1;
+    if (prospect.returnedAt) stats.returned += 1;
+  });
+
+  const rows = Array.from(statsByKey.values())
+    .filter((stats) => stats.made > 0 || stats.isActive)
+    .sort((first, second) => second.made - first.made || second.returned - first.returned || first.name.localeCompare(second.name, "pt-BR"));
+
+  if (!rows.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-professional-empty";
+    empty.textContent = "Nenhum profissional cadastrado nesta loja.";
+    list.append(empty);
+    return panel;
+  }
+
+  rows.forEach((stats) => {
+    const conversion = stats.made ? Math.round((stats.returned / stats.made) * 100) : 0;
+    const row = document.createElement("div");
+    row.className = "admin-professional-row";
+    row.innerHTML = `
+      <strong>${escapeHtml(stats.name)}</strong>
+      <span><b>${stats.made}</b> feitas</span>
+      <span><b>${stats.returned}</b> voltaram</span>
+      <em>${conversion}%</em>
+    `;
+    list.append(row);
+  });
+
+  return panel;
+}
+
 function createStoreSettingsRow(store) {
   const row = document.createElement("div");
   row.className = "admin-store-settings-row";
@@ -573,25 +665,48 @@ function createStoreSettingsRow(store) {
         <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
       </button>
     </div>
-    <label>
-      Nome da loja
-      <input class="store-name-input" type="text" value="${escapeHtml(store.name)}" />
-    </label>
-    <label>
-      Meta diária
-      <input class="store-goal-input" type="number" min="1" step="1" value="${getStoreGoal(store)}" />
-    </label>
-    <label>
-      Cor da loja
-      <select class="store-color-select"></select>
-    </label>
-    <label>
-      Nova etiqueta
-      <input class="store-tag-input" type="text" placeholder="Retorno receita" />
-    </label>
-    <button class="secondary-button store-tag-save" type="button">Criar etiqueta</button>
-    <button class="secondary-button store-settings-save" type="button">Salvar</button>
-    <div class="store-tags-preview" aria-label="Etiquetas criadas"></div>
+    <div class="store-settings-content">
+      <div class="store-settings-fields">
+        <label>
+          Nome da loja
+          <input class="store-name-input" type="text" value="${escapeHtml(store.name)}" />
+        </label>
+        <label>
+          Meta diária
+          <input class="store-goal-input" type="number" min="1" step="1" value="${getStoreGoal(store)}" />
+        </label>
+        <label>
+          Cor da loja
+          <select class="store-color-select"></select>
+        </label>
+        <button class="secondary-button store-settings-save" type="button">Salvar loja</button>
+      </div>
+      <div class="store-managers-grid">
+        <section class="store-mini-manager" aria-label="Etiquetas da loja">
+          <strong>Etiquetas</strong>
+          <div class="store-manager-form">
+            <label>
+              Nova etiqueta
+              <input class="store-tag-input" type="text" placeholder="Retorno receita" />
+            </label>
+            <button class="secondary-button store-tag-save" type="button">Criar etiqueta</button>
+          </div>
+          <div class="store-tags-preview" aria-label="Etiquetas criadas"></div>
+        </section>
+        <section class="store-mini-manager" aria-label="Profissionais da loja">
+          <strong>Profissionais</strong>
+          <div class="store-manager-form">
+            <label>
+              Novo profissional
+              <input class="store-professional-input" type="text" placeholder="Maria Souza" />
+            </label>
+            <button class="secondary-button store-professional-create" type="button">Criar profissional</button>
+          </div>
+          <div class="store-professionals-preview" aria-label="Profissionais cadastrados"></div>
+        </section>
+      </div>
+      <p class="store-row-message" role="alert"></p>
+    </div>
   `;
   const select = row.querySelector(".store-color-select");
   Object.entries(STORE_COLORS).forEach(([key, theme]) => {
@@ -603,11 +718,48 @@ function createStoreSettingsRow(store) {
   });
   const preview = row.querySelector(".store-tags-preview");
   store.tags.forEach((tag) => preview.append(createChip(tag, "tag-chip")));
+  renderStoreProfessionals(store, row);
   row.querySelector(".store-settings-save").addEventListener("click", () => saveStoreSettings(store.id, row));
   row.querySelector(".store-tag-save").addEventListener("click", () => createAdminTag(store.id, row));
+  row.querySelector(".store-professional-create").addEventListener("click", () => createAdminProfessional(store.id, row));
+  row.querySelector(".store-professional-input").addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    createAdminProfessional(store.id, row);
+  });
   row.querySelector(".store-move-up").addEventListener("click", () => moveStore(store.id, -1));
   row.querySelector(".store-move-down").addEventListener("click", () => moveStore(store.id, 1));
   return row;
+}
+
+function setStoreRowMessage(row, message, isError = true) {
+  if (!row) return;
+  const messageElement = row.querySelector(".store-row-message");
+  if (!messageElement) return;
+  messageElement.textContent = message;
+  messageElement.classList.toggle("is-success", Boolean(message) && !isError);
+}
+
+function renderStoreProfessionals(store, row) {
+  const preview = row.querySelector(".store-professionals-preview");
+  if (!preview) return;
+  preview.innerHTML = "";
+  const professionals = [...(store.professionals || [])].sort((first, second) => first.name.localeCompare(second.name, "pt-BR"));
+  professionals.forEach((professional) => {
+    const item = document.createElement("div");
+    item.className = "store-professional-row";
+    item.dataset.professionalId = professional.id;
+    item.innerHTML = `
+      <input class="store-professional-name" type="text" value="${escapeHtml(professional.name)}" />
+      <label class="store-professional-active">
+        <input type="checkbox" ${professional.isActive ? "checked" : ""} />
+        Ativo
+      </label>
+      <button class="secondary-button store-professional-save" type="button">Salvar</button>
+    `;
+    item.querySelector(".store-professional-save").addEventListener("click", () => saveAdminProfessional(store.id, professional.id, item));
+    preview.append(item);
+  });
 }
 
 function renderSummary() {
@@ -633,6 +785,14 @@ function renderSummary() {
   weekReturns.textContent = analysisProspects.filter((prospect) => isInCurrentWeek(prospect.returnedAt)).length;
   monthReturns.textContent = analysisProspects.filter((prospect) => isInCurrentMonth(prospect.returnedAt)).length;
   yearReturns.textContent = analysisProspects.filter((prospect) => isInCurrentYear(prospect.returnedAt)).length;
+}
+
+function renderAnalysisProfessionalPerformance() {
+  const professionals = currentContext?.type === "admin" && analysisScopeStore
+    ? analysisScopeStore.professionals || []
+    : availableProfessionals;
+  analysisProfessionalPerformance.innerHTML = "";
+  analysisProfessionalPerformance.append(createProfessionalPerformance({ professionals }, getAnalysisProspects()));
 }
 
 function renderAdminDashboard() {
@@ -703,6 +863,7 @@ function renderAdminDashboard() {
         <div><strong>${periodReturns.length}</strong><span>Voltaram neste ${periodWindow.label}</span></div>
         <div><strong>${conversion}%</strong><span>Conversão deste ${periodWindow.label}</span></div>
       </div>
+      <div class="admin-professional-performance-slot"></div>
       <div class="admin-store-chart"></div>
     `;
     card.querySelector(".admin-store-metrics").append(
@@ -717,6 +878,7 @@ function renderAdminDashboard() {
       createPeriodButton(store, "monthly", "Mês", selectedPeriod),
       createPeriodButton(store, "yearly", "Ano", selectedPeriod)
     );
+    card.querySelector(".admin-professional-performance-slot").append(createProfessionalPerformance(store, periodProspects));
     card.querySelector(".admin-store-chart").append(
       createAdminBar("Mês", monthlyProspects, maxMonth),
       createAdminBar("Conversão mês", monthlyProspects ? Math.round((monthlyReturns / monthlyProspects) * 100) : 0, 100),
@@ -779,6 +941,7 @@ function renderCalendar() {
 
 function renderAnalysis() {
   renderSummary();
+  renderAnalysisProfessionalPerformance();
   renderCalendar();
 }
 
@@ -805,6 +968,26 @@ function renderTags(selectedTags = getSelectedTags()) {
   });
 }
 
+function renderProfessionalOptions(selectedId = getSelectedProfessionalId()) {
+  professionalOptions.innerHTML = "";
+  if (!availableProfessionals.length) {
+    const empty = document.createElement("span");
+    empty.className = "professional-empty";
+    empty.textContent = "Nenhum profissional cadastrado";
+    professionalOptions.append(empty);
+    return;
+  }
+  availableProfessionals.forEach((professional) => {
+    const label = document.createElement("label");
+    label.className = "professional-option";
+    label.innerHTML = `
+      <input type="radio" name="professional" value="${escapeHtml(professional.id)}" ${professional.id === selectedId ? "checked" : ""} />
+      <span>${escapeHtml(professional.name)}</span>
+    `;
+    professionalOptions.append(label);
+  });
+}
+
 function renderProspects() {
   const filteredProspects = getFilteredProspects();
   prospectsList.innerHTML = "";
@@ -818,6 +1001,7 @@ function renderProspects() {
     const whatsappButton = card.querySelector(".whatsapp-button");
     const notes = card.querySelector(".card-notes");
     const tags = card.querySelector(".card-tags");
+    const professional = card.querySelector(".card-professional");
     const digits = onlyDigits(prospect.phone);
     card.dataset.color = prospect.color;
     card.querySelector(".card-name").textContent = getDisplayName(prospect);
@@ -829,6 +1013,11 @@ function renderProspects() {
       prospect.tags.forEach((tag) => tags.append(createChip(tag, "tag-chip")));
     } else {
       tags.remove();
+    }
+    if (prospect.professionalName) {
+      professional.append(createChip(`Profissional: ${prospect.professionalName}`, "professional-chip"));
+    } else {
+      professional.remove();
     }
     if (prospect.phone) meta.append(createChip(prospect.phone));
     if (prospect.cpf) meta.append(createChip(prospect.cpf));
@@ -867,6 +1056,8 @@ function fromDbProspect(row) {
     phone: row.phone || "",
     cpf: row.cpf || "",
     notes: row.notes || "",
+    professionalId: row.professional_id || "",
+    professionalName: row.professional_name_snapshot || row.professional_name || "",
     tags: Array.isArray(row.tags) ? row.tags : [],
     color: row.probability || "blue",
     createdAt: row.created_at,
@@ -884,6 +1075,7 @@ function fromDbStore(row) {
     accentColor: STORE_COLORS[row.accent_color] ? row.accent_color : "blue",
     sortOrder: Number(row.sort_order) || 0,
     tags: Array.isArray(row.tags) ? row.tags : [],
+    professionals: Array.isArray(row.professionals) ? row.professionals : [],
     createdAt: row.created_at,
   };
 }
@@ -914,8 +1106,12 @@ async function loadAdminData() {
     prospectsResult = await supabaseClient.from("prospects").select("*").order("created_at", { ascending: false });
   }
   const tagsResult = await supabaseClient.rpc("admin_get_tags");
+  const professionalsResult = await supabaseClient.rpc("admin_get_professionals");
   if (storesResult.error) throw storesResult.error;
   if (prospectsResult.error) throw prospectsResult.error;
+  if (professionalsResult.error && !professionalsResult.error.message?.includes("admin_get_professionals")) {
+    throw professionalsResult.error;
+  }
   const tagsByStore = new Map();
   if (!tagsResult.error && Array.isArray(tagsResult.data)) {
     tagsResult.data.forEach((tag) => {
@@ -925,14 +1121,28 @@ async function loadAdminData() {
       tagsByStore.get(storeId).push(cleanTag(tag.label));
     });
   }
-  stores = storesResult.data.map((row) => fromDbStore({ ...row, tags: tagsByStore.get(row.id) || [] }));
+  const professionalsByStore = new Map();
+  if (!professionalsResult.error && Array.isArray(professionalsResult.data)) {
+    professionalsResult.data.forEach((professional) => {
+      const storeId = professional.store_id || professional.storeId;
+      if (!storeId) return;
+      if (!professionalsByStore.has(storeId)) professionalsByStore.set(storeId, []);
+      professionalsByStore.get(storeId).push({
+        id: professional.id,
+        name: cleanProfessionalName(professional.name),
+        isActive: professional.is_active !== false,
+      });
+    });
+  }
+  stores = storesResult.data.map((row) => fromDbStore({ ...row, tags: tagsByStore.get(row.id) || [], professionals: professionalsByStore.get(row.id) || [] }));
   prospects = prospectsResult.data.map(fromDbProspect);
 }
 
 async function loadStoreData() {
-  const [prospectsResult, tagsResult] = await Promise.all([
+  const [prospectsResult, tagsResult, professionalsResult] = await Promise.all([
     supabaseClient.rpc("store_get_prospects", { p_token: currentContext.token }),
     supabaseClient.rpc("store_get_tags", { p_token: currentContext.token }),
+    supabaseClient.rpc("store_get_professionals", { p_token: currentContext.token }),
   ]);
   const { data, error } = prospectsResult;
   if (error) throw error;
@@ -943,7 +1153,20 @@ async function loadStoreData() {
   } else if (Array.isArray(tagsResult.data)) {
     availableTags = tagsResult.data.map((item) => cleanTag(item.label || item)).filter(Boolean);
   }
+  if (professionalsResult.error) {
+    if (isInvalidStoreSessionError(professionalsResult.error)) throw professionalsResult.error;
+    availableProfessionals = [];
+  } else if (Array.isArray(professionalsResult.data)) {
+    availableProfessionals = professionalsResult.data
+      .map((item) => ({
+        id: item.id,
+        name: cleanProfessionalName(item.name),
+        isActive: item.is_active !== false,
+      }))
+      .filter((item) => item.id && item.name);
+  }
   renderTags();
+  renderProfessionalOptions();
   prospects = data.map(fromDbProspect);
 }
 
@@ -963,7 +1186,9 @@ async function refreshAppData() {
       currentContext = null;
       prospects = [];
       availableTags = ["Receita vencida", "Aniversário"];
+      availableProfessionals = [];
       renderTags();
+      renderProfessionalOptions();
       showAuth("Sessão da loja expirou. Entre novamente.");
       return;
     }
@@ -1210,6 +1435,60 @@ async function createAdminTag(storeId, row) {
   adminStoreSettingsMessage.textContent = "Etiqueta criada para a loja.";
 }
 
+async function createAdminProfessional(storeId, row) {
+  const input = row.querySelector(".store-professional-input");
+  const button = row.querySelector(".store-professional-create");
+  const name = cleanProfessionalName(input.value);
+  adminStoreSettingsMessage.textContent = "";
+  setStoreRowMessage(row, "");
+  if (!name) {
+    setStoreRowMessage(row, "Digite o nome do profissional.");
+    return;
+  }
+  button.disabled = true;
+  try {
+    const { error } = await supabaseClient.rpc("admin_create_professional", { p_store_id: storeId, p_name: name });
+    if (error) throw error;
+    input.value = "";
+    adminStoreSettingsMessage.textContent = "Profissional criado para a loja.";
+    setStoreRowMessage(row, "Profissional criado.", false);
+    await refreshAppData();
+  } catch (error) {
+    const message = getSupabaseErrorMessage(error);
+    adminStoreSettingsMessage.textContent = message;
+    setStoreRowMessage(row, message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function saveAdminProfessional(storeId, professionalId, row) {
+  const name = cleanProfessionalName(row.querySelector(".store-professional-name").value);
+  const isActive = row.querySelector(".store-professional-active input").checked;
+  const settingsRow = row.closest(".admin-store-settings-row");
+  adminStoreSettingsMessage.textContent = "";
+  setStoreRowMessage(settingsRow, "");
+  if (!name) {
+    setStoreRowMessage(settingsRow, "Digite o nome do profissional.");
+    return;
+  }
+  const { error } = await supabaseClient.rpc("admin_update_professional", {
+    p_store_id: storeId,
+    p_professional_id: professionalId,
+    p_name: name,
+    p_is_active: isActive,
+  });
+  if (error) {
+    const message = getSupabaseErrorMessage(error);
+    adminStoreSettingsMessage.textContent = message;
+    setStoreRowMessage(settingsRow, message);
+    return;
+  }
+  adminStoreSettingsMessage.textContent = "Profissional atualizado.";
+  setStoreRowMessage(settingsRow, "Profissional atualizado.", false);
+  await refreshAppData();
+}
+
 async function saveStoreSettings(storeId, row) {
   adminStoreSettingsMessage.textContent = "";
   const name = row.querySelector(".store-name-input").value.trim();
@@ -1294,9 +1573,14 @@ async function upsertProspect(event) {
   const notes = notesInput.value.trim();
   const color = getSelectedColor();
   const tags = getSelectedTags();
+  const professionalId = getSelectedProfessionalId();
   const editingId = editingIdInput.value;
   if (!name && !phone && !cpf) {
     formError.textContent = "Preencha pelo menos nome, telefone ou CPF.";
+    return;
+  }
+  if (availableProfessionals.length > 0 && !professionalId) {
+    formError.textContent = "Selecione o profissional que realizou a prospecção.";
     return;
   }
   const payload = {
@@ -1307,14 +1591,16 @@ async function upsertProspect(event) {
     p_notes: notes || null,
     p_probability: color,
     p_tags: tags,
+    p_professional_id: professionalId,
   };
   const request = editingId
     ? supabaseClient.rpc("store_update_prospect", { p_id: editingId, ...payload })
     : supabaseClient.rpc("store_create_prospect", payload);
   let { error } = await request;
-  if (error?.message?.includes("p_tags")) {
+  if (error?.message?.includes("p_tags") || error?.message?.includes("p_professional_id")) {
     const fallbackPayload = { ...payload };
     delete fallbackPayload.p_tags;
+    delete fallbackPayload.p_professional_id;
     const fallbackRequest = await (editingId
       ? supabaseClient.rpc("store_update_prospect", { p_id: editingId, ...fallbackPayload })
       : supabaseClient.rpc("store_create_prospect", fallbackPayload));
@@ -1342,9 +1628,13 @@ function editProspect(id) {
   phoneInput.value = prospect.phone;
   cpfInput.value = prospect.cpf;
   notesInput.value = prospect.notes;
+  if (prospect.professionalId && !availableProfessionals.some((item) => item.id === prospect.professionalId)) {
+    availableProfessionals.push({ id: prospect.professionalId, name: prospect.professionalName || "Profissional inativo", isActive: false });
+  }
   prospect.tags?.forEach((tag) => {
     if (!availableTags.some((item) => normalize(item) === normalize(tag))) availableTags.push(tag);
   });
+  renderProfessionalOptions(prospect.professionalId);
   renderTags(prospect.tags || []);
   setSelectedColor(prospect.color);
   submitLabel.textContent = "Salvar alterações";

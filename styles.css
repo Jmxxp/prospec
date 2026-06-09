@@ -125,9 +125,9 @@ button {
 }
 
 .app-shell {
-  width: min(1180px, calc(100% - 32px));
+  width: min(1360px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 28px 0;
+  padding: 18px 0;
 }
 
 [hidden] {
@@ -148,9 +148,9 @@ body.is-store-context #adminSettingsOverlay {
 .topbar {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 12px;
   align-items: start;
-  margin-bottom: 22px;
+  margin-bottom: 14px;
 }
 
 .topbar-row {
@@ -238,12 +238,12 @@ body.is-store-context #adminSettingsOverlay {
 }
 
 .admin-settings-panel {
-  width: min(980px, 100%);
-  max-height: calc(100vh - 48px);
+  width: min(1180px, 100%);
+  max-height: calc(100vh - 28px);
   overflow: auto;
   display: grid;
-  gap: 14px;
-  padding: 20px;
+  gap: 12px;
+  padding: 16px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: #ffffff;
@@ -255,7 +255,7 @@ body.is-store-context #adminSettingsOverlay {
   justify-content: space-between;
   gap: 14px;
   align-items: center;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -343,11 +343,15 @@ body.is-store-context #adminSettingsOverlay {
 
 .admin-store-settings-panel {
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: #f8fafc;
+}
+
+.admin-store-settings-panel h3 {
+  font-size: 1.05rem;
 }
 
 .admin-store-settings-list {
@@ -357,13 +361,15 @@ body.is-store-context #adminSettingsOverlay {
 
 .admin-store-settings-row {
   display: grid;
-  grid-template-columns: auto minmax(160px, 1fr) minmax(105px, 0.45fr) minmax(130px, 0.65fr) minmax(150px, 0.8fr) auto auto;
-  gap: 10px;
-  align-items: end;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
   padding: 12px;
   border: 1px solid #dbe3ee;
+  border-left: 4px solid #2563eb;
   border-radius: 8px;
   background: #fff;
+  box-shadow: 0 8px 22px rgba(22, 32, 51, 0.045);
 }
 
 .admin-store-settings-row strong {
@@ -385,12 +391,106 @@ body.is-store-context #adminSettingsOverlay {
   font-size: 0.82rem;
 }
 
+.store-settings-content {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.store-settings-fields {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(100px, 0.35fr) minmax(140px, 0.55fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.store-managers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.store-mini-manager {
+  display: grid;
+  align-content: start;
+  align-items: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.store-mini-manager strong {
+  color: #0f172a;
+  font-size: 0.88rem;
+}
+
+.store-manager-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.store-manager-form .secondary-button,
+.store-settings-fields .secondary-button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
 .store-tags-preview {
-  grid-column: 2 / -1;
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
   min-height: 0;
+}
+
+.store-professionals-preview {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  max-height: 176px;
+  overflow: auto;
+}
+
+.store-row-message {
+  min-height: 18px;
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.82rem;
+  font-weight: 780;
+}
+
+.store-row-message.is-success {
+  color: #15803d;
+}
+
+.store-professional-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 7px;
+  align-items: center;
+  padding: 7px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.store-professional-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.store-professional-active input {
+  width: 14px;
+  min-height: 14px;
 }
 
 .admin-password-grid {
@@ -644,6 +744,86 @@ body.is-store-context #adminSettingsOverlay {
   font-weight: 780;
 }
 
+.admin-professional-performance {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.admin-professional-performance-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-professional-performance h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.admin-professional-performance-header span,
+.admin-professional-empty {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 780;
+}
+
+.admin-professional-list {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-professional-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 96px 110px 72px;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.admin-professional-row strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-professional-row span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 780;
+  text-align: right;
+}
+
+.admin-professional-row b {
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.admin-professional-row em {
+  display: inline-flex;
+  justify-content: center;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--store-accent, #1d4ed8) 12%, white);
+  color: var(--store-accent, #1d4ed8);
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .admin-bar-row {
   display: grid;
   grid-template-columns: 92px 1fr 42px;
@@ -755,7 +935,7 @@ body.is-store-context #adminSettingsOverlay {
 .eyebrow {
   margin: 0 0 6px;
   color: var(--primary);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -770,7 +950,7 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.9rem, 3.6vw, 2.85rem);
   line-height: 1;
 }
 
@@ -908,6 +1088,11 @@ h2 {
   background: #fbfffd;
 }
 
+.analysis-professional-panel .admin-professional-performance {
+  border-color: var(--line);
+  box-shadow: 0 10px 28px rgba(22, 32, 51, 0.05);
+}
+
 .period-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1039,9 +1224,9 @@ h2 {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(300px, 390px) 1fr;
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: minmax(360px, 1fr) minmax(520px, 2.15fr);
+  gap: 18px;
+  align-items: stretch;
 }
 
 .panel {
@@ -1053,13 +1238,16 @@ h2 {
 
 .form-panel {
   position: sticky;
-  top: 18px;
-  padding: 20px;
+  top: 12px;
+  padding: 16px;
 }
 
 .list-panel {
-  min-height: 580px;
-  padding: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  padding: 0;
 }
 
 .panel-header {
@@ -1067,23 +1255,52 @@ h2 {
   justify-content: space-between;
   gap: 16px;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .list-header {
   align-items: start;
+  margin-bottom: 0;
+}
+
+.list-toolbar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.45fr) minmax(480px, 1fr);
+  gap: 18px;
+  align-items: end;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
 }
 
 form,
 .search-label {
   display: grid;
-  gap: 12px;
+  gap: 8px;
+}
+
+#prospectForm {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 10px;
+  row-gap: 6px;
+}
+
+#prospectForm > input[type="hidden"],
+#prospectForm > label:first-of-type,
+#prospectForm > label:nth-of-type(4),
+#prospectForm > .professional-picker,
+#prospectForm > .tag-editor,
+#prospectForm > .status-picker,
+#prospectForm > .form-error,
+#prospectForm > .primary-button {
+  grid-column: 1 / -1;
 }
 
 label,
 legend {
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 750;
 }
 
@@ -1098,9 +1315,9 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(203, 213, 225, 0.74);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.38);
   color: var(--text);
   outline: none;
   transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
@@ -1108,19 +1325,19 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(97, 112, 135, 0.58);
+  color: rgba(97, 112, 135, 0.42);
 }
 
 input,
 select {
-  min-height: 44px;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 11px;
 }
 
 textarea {
   resize: vertical;
-  min-height: 118px;
-  padding: 12px;
+  min-height: 62px;
+  padding: 10px 11px;
 }
 
 input:focus,
@@ -1134,7 +1351,7 @@ textarea:focus {
 .status-picker {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   margin: 2px 0 0;
   padding: 0;
   border: 0;
@@ -1146,28 +1363,61 @@ textarea:focus {
 }
 
 .status-option {
+  --status-color: var(--blue);
+  position: relative;
   display: flex;
-  min-height: 42px;
+  min-height: 34px;
   align-items: center;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--line);
+  justify-content: center;
+  gap: 0;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--status-color) 54%, var(--line));
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.48);
-  color: var(--text);
-  font-weight: 720;
+  background: color-mix(in srgb, var(--status-color) 18%, white);
+  color: color-mix(in srgb, var(--status-color) 82%, #0f172a);
+  font-weight: 800;
+  text-align: center;
 }
 
 .status-option:has(input:checked) {
-  border-color: rgba(37, 99, 235, 0.36);
-  background: rgba(37, 99, 235, 0.075);
-  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.1);
+  border-color: color-mix(in srgb, var(--status-color) 88%, #0f172a);
+  background: color-mix(in srgb, var(--status-color) 84%, #0f172a);
+  color: #ffffff;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--status-color) 24%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--status-color) 38%, white);
+}
+
+.status-option:has(input:checked)::after {
+  content: "✓";
+  position: absolute;
+  right: 10px;
+  font-size: 0.9rem;
+  font-weight: 900;
 }
 
 .status-option input {
-  width: 16px;
-  min-height: 16px;
-  accent-color: var(--primary);
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.status-option .swatch {
+  display: none;
+}
+
+.status-option:has(input[value="red"]) {
+  --status-color: var(--red);
+}
+
+.status-option:has(input[value="yellow"]) {
+  --status-color: var(--yellow);
+}
+
+.status-option:has(input[value="blue"]) {
+  --status-color: var(--blue);
+}
+
+.status-option:has(input[value="green"]) {
+  --status-color: var(--green);
 }
 
 .swatch {
@@ -1176,16 +1426,18 @@ textarea:focus {
   border-radius: 50%;
 }
 
-.tag-editor {
+.tag-editor,
+.professional-picker {
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #f8fafc;
 }
 
-.tag-editor-header {
+.tag-editor-header,
+.professional-picker-header {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -1197,15 +1449,18 @@ textarea:focus {
 .tag-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
-.tag-option {
+.tag-option,
+.professional-option,
+.professional-empty {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 34px;
-  padding: 0 10px;
+  min-height: 30px;
+  padding: 0 9px;
   border: 1px solid #cbd5e1;
   border-radius: 999px;
   background: #fff;
@@ -1214,16 +1469,34 @@ textarea:focus {
   font-weight: 820;
 }
 
-.tag-option:has(input:checked) {
+.professional-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.professional-option,
+.tag-option {
+  cursor: pointer;
+}
+
+.tag-option:has(input:checked),
+.professional-option:has(input:checked) {
   border-color: #1d4ed8;
   background: #eef4ff;
   color: #1d4ed8;
 }
 
-.tag-option input {
-  width: 14px;
-  min-height: 14px;
-  accent-color: var(--primary);
+.tag-option input,
+.professional-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.professional-empty {
+  border-style: dashed;
+  color: var(--muted);
 }
 
 .swatch-blue {
@@ -1243,11 +1516,15 @@ textarea:focus {
 }
 
 .form-error {
-  min-height: 20px;
+  min-height: 16px;
   margin: 0;
   color: var(--danger);
   font-size: 0.88rem;
   font-weight: 700;
+}
+
+.form-error:empty {
+  display: none;
 }
 
 .primary-button,
@@ -1267,9 +1544,15 @@ textarea:focus {
 }
 
 .primary-button {
-  min-height: 48px;
+  min-height: 38px;
   background: var(--primary);
   color: white;
+}
+
+#prospectForm > .primary-button {
+  margin-top: 0;
+  min-height: 38px;
+  font-size: 0.92rem;
 }
 
 .primary-button:hover {
@@ -1285,34 +1568,41 @@ textarea:focus {
 }
 
 .secondary-button {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 38px;
+  padding: 0 12px;
 }
 
 .icon-button {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   font-size: 1.1rem;
 }
 
 .search-row {
   display: grid;
-  grid-template-columns: 1fr 170px;
+  grid-template-columns: minmax(0, 1fr) 170px;
   gap: 12px;
   align-items: end;
-  margin-bottom: 18px;
+  margin-bottom: 0;
 }
 
 .prospects-list {
+  grid-column: 1 / -1;
+  grid-row: 2;
   display: grid;
-  gap: 12px;
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  padding: 16px;
 }
 
 .prospect-card {
   --status-color: var(--blue);
   display: grid;
-  gap: 14px;
-  padding: 17px;
+  gap: 10px;
+  padding: 14px;
   border: 1px solid rgba(219, 227, 238, 0.9);
   border-left: 6px solid var(--status-color);
   border-radius: 8px;
@@ -1378,8 +1668,8 @@ textarea:focus {
 .tag-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 9px;
+  min-height: 24px;
+  padding: 0 8px;
   border-radius: 999px;
   background: #eef2f7;
   color: #475569;
@@ -1391,6 +1681,20 @@ textarea:focus {
   border: 1px solid #bfdbfe;
   background: #eff6ff;
   color: #1d4ed8;
+  font-weight: 840;
+}
+
+.store-tags-preview .tag-chip {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #334155;
+  font-size: 0.74rem;
+}
+
+.professional-chip {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
   font-weight: 840;
 }
 
@@ -1493,12 +1797,16 @@ textarea:focus {
 }
 
 .empty-state {
+  grid-column: 1 / -1;
+  grid-row: 2;
   display: none;
   place-items: center;
-  min-height: 310px;
-  padding: 24px;
+  min-height: 100%;
+  margin: 16px;
+  padding: 20px;
   border: 1px dashed var(--line);
   border-radius: 8px;
+  background: rgba(248, 250, 252, 0.52);
   color: var(--muted);
   text-align: center;
 }
@@ -1518,16 +1826,6 @@ textarea:focus {
 }
 
 @media (min-width: 721px) {
-  .app-shell {
-    width: min(1180px, calc(100% - 32px));
-    margin: 0 auto;
-    padding: 28px 0;
-  }
-
-  .workspace {
-    grid-template-columns: minmax(300px, 390px) 1fr;
-  }
-
   .topbar-row,
   .admin-header,
   .admin-settings-header,
@@ -1557,6 +1855,21 @@ textarea:focus {
   }
 }
 
+@media (max-width: 1040px) {
+  .workspace {
+    grid-template-columns: minmax(300px, 0.9fr) minmax(420px, 1.25fr);
+  }
+
+  #prospectForm {
+    grid-template-columns: 1fr;
+  }
+
+  .list-toolbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 @media (max-width: 720px) {
   .app-shell {
     width: 100%;
@@ -1566,6 +1879,8 @@ textarea:focus {
   .topbar,
   .workspace,
   .search-row,
+  .list-toolbar,
+  #prospectForm,
   .analysis-header,
   .calendar-header,
   .period-stats,
@@ -1575,8 +1890,13 @@ textarea:focus {
   .admin-store-create-grid,
   .admin-password-grid,
   .admin-store-metrics,
-  .admin-comparison {
+  .admin-comparison,
+  .admin-professional-row {
     grid-template-columns: 1fr;
+  }
+
+  .admin-professional-row span {
+    text-align: left;
   }
 
   .analysis-header,
@@ -1598,6 +1918,15 @@ textarea:focus {
 
   .store-order-controls .icon-button {
     width: 100%;
+  }
+
+  .store-settings-fields,
+  .store-managers-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .store-manager-form {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .form-panel {
@@ -1679,6 +2008,18 @@ textarea:focus {
 
   .delete-store-actions {
     grid-template-columns: 1fr;
+  }
+
+  .store-manager-form {
+    grid-template-columns: 1fr;
+  }
+
+  .store-professional-row {
+    grid-template-columns: 1fr;
+  }
+
+  .store-professional-active {
+    justify-content: flex-start;
   }
 
   .calendar-day,

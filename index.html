@@ -247,6 +247,8 @@
               </section>
             </div>
 
+            <section id="analysisProfessionalPerformance" class="analysis-professional-panel" aria-label="Desempenho por profissional"></section>
+
             <section class="calendar-panel" aria-labelledby="calendar-title">
               <div class="calendar-header">
                 <div>
@@ -300,6 +302,13 @@
               <textarea id="notesInput" name="notes" rows="5" placeholder="Interessada em óculos de grau, voltar com receita."></textarea>
             </label>
 
+            <section class="professional-picker" aria-labelledby="professional-picker-title">
+              <div class="professional-picker-header">
+                <span id="professional-picker-title">Profissional</span>
+              </div>
+              <div id="professionalOptions" class="professional-options"></div>
+            </section>
+
             <section class="tag-editor" aria-labelledby="tag-editor-title">
               <div class="tag-editor-header">
                 <span id="tag-editor-title">Etiquetas</span>
@@ -340,27 +349,29 @@
         </aside>
 
         <section class="panel list-panel" aria-labelledby="list-title">
-          <div class="panel-header list-header">
-            <div>
-              <p class="eyebrow">Hoje</p>
-              <h2 id="list-title">Prospecções do dia</h2>
+          <div class="list-toolbar">
+            <div class="panel-header list-header">
+              <div>
+                <p class="eyebrow">Hoje</p>
+                <h2 id="list-title">Prospecções do dia</h2>
+              </div>
             </div>
-          </div>
 
-          <div class="search-row">
-            <label class="search-label">
-              Buscar nas prospecções de hoje
-              <input id="searchInput" type="search" placeholder="Nome, telefone, CPF ou anotação" />
-            </label>
-            <select id="statusFilter" aria-label="Filtrar por status">
-              <option value="all">Todos</option>
-              <option value="not-returned">Não voltaram</option>
-              <option value="returned">Voltaram</option>
-              <option value="red" data-color-filter-option="red">Improvável</option>
-              <option value="yellow" data-color-filter-option="yellow">Pouco provável</option>
-              <option value="blue" data-color-filter-option="blue">Provável</option>
-              <option value="green" data-color-filter-option="green">Muito provável</option>
-            </select>
+            <div class="search-row">
+              <label class="search-label">
+                Buscar nas prospecções de hoje
+                <input id="searchInput" type="search" placeholder="Nome, telefone, CPF ou anotação" />
+              </label>
+              <select id="statusFilter" aria-label="Filtrar por status">
+                <option value="all">Todos</option>
+                <option value="not-returned">Não voltaram</option>
+                <option value="returned">Voltaram</option>
+                <option value="red" data-color-filter-option="red">Improvável</option>
+                <option value="yellow" data-color-filter-option="yellow">Pouco provável</option>
+                <option value="blue" data-color-filter-option="blue">Provável</option>
+                <option value="green" data-color-filter-option="green">Muito provável</option>
+              </select>
+            </div>
           </div>
 
           <div id="prospectsList" class="prospects-list" aria-live="polite"></div>
@@ -406,6 +417,7 @@
         </div>
         <p class="card-notes"></p>
         <div class="card-tags"></div>
+        <div class="card-professional"></div>
         <div class="date-grid">
           <span><strong>Registrado:</strong> <em class="created-date"></em></span>
           <span><strong>Voltou:</strong> <em class="returned-date"></em></span>
