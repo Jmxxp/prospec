@@ -1784,6 +1784,29 @@ textarea:focus {
   font-size: 0.74rem;
 }
 
+.admin-tag-chip {
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.admin-tag-chip button {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.admin-tag-chip button:hover {
+  background: #fecaca;
+}
+
 .professional-chip {
   border: 1px solid #bbf7d0;
   background: #f0fdf4;

@@ -712,6 +712,19 @@ function createAdminBar(label, value, max) {
   return row;
 }
 
+function createAdminTagChip(storeId, tag, row) {
+  const chip = document.createElement("span");
+  chip.className = "tag-chip admin-tag-chip";
+  chip.innerHTML = `
+    <span>${escapeHtml(tag)}</span>
+    <button type="button" title="Excluir etiqueta ${escapeHtml(tag)}" aria-label="Excluir etiqueta ${escapeHtml(tag)}">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  `;
+  chip.querySelector("button").addEventListener("click", () => deleteAdminTag(storeId, tag, row));
+  return chip;
+}
+
 function createTrendChart(storeProspects, period) {
   const chart = document.createElement("div");
   const buckets = getPeriodBuckets(period).map((bucket) => ({
@@ -886,7 +899,7 @@ function createStoreSettingsRow(store) {
     select.append(option);
   });
   const preview = row.querySelector(".store-tags-preview");
-  store.tags.forEach((tag) => preview.append(createChip(tag, "tag-chip")));
+  store.tags.forEach((tag) => preview.append(createAdminTagChip(store.id, tag, row)));
   renderStoreProfessionals(store, row);
   row.querySelector(".store-settings-save").addEventListener("click", () => saveStoreSettings(store.id, row));
   row.querySelector(".store-tag-save").addEventListener("click", () => createAdminTag(store.id, row));
@@ -1659,23 +1672,46 @@ async function createAdminTag(storeId, row) {
   const input = row.querySelector(".store-tag-input");
   const label = cleanTag(input.value);
   adminStoreSettingsMessage.textContent = "";
+  setStoreRowMessage(row, "");
   if (!label) {
-    adminStoreSettingsMessage.textContent = "Digite o nome da etiqueta.";
+    setStoreRowMessage(row, "Digite o nome da etiqueta.");
     return;
   }
   const { error } = await supabaseClient.rpc("admin_create_tag", { p_store_id: storeId, p_label: label });
   if (error) {
-    adminStoreSettingsMessage.textContent = getSupabaseErrorMessage(error);
+    const message = getSupabaseErrorMessage(error);
+    adminStoreSettingsMessage.textContent = message;
+    setStoreRowMessage(row, message);
     return;
   }
   input.value = "";
   const preview = row.querySelector(".store-tags-preview");
   if (preview && !Array.from(preview.children).some((chip) => normalize(chip.textContent) === normalize(label))) {
-    preview.append(createChip(label, "tag-chip"));
+    preview.append(createAdminTagChip(storeId, label, row));
   }
   const store = stores.find((item) => item.id === storeId);
   if (store && !store.tags.some((tag) => normalize(tag) === normalize(label))) store.tags.push(label);
   adminStoreSettingsMessage.textContent = "Etiqueta criada para a loja.";
+  setStoreRowMessage(row, "Etiqueta criada.", false);
+}
+
+async function deleteAdminTag(storeId, tag, row) {
+  const label = cleanTag(tag);
+  if (!label || !confirm(`Excluir a etiqueta "${label}" desta loja?`)) return;
+  adminStoreSettingsMessage.textContent = "";
+  setStoreRowMessage(row, "");
+  const { error } = await supabaseClient.rpc("admin_delete_tag", { p_store_id: storeId, p_label: label });
+  if (error) {
+    const message = getSupabaseErrorMessage(error);
+    adminStoreSettingsMessage.textContent = message;
+    setStoreRowMessage(row, message);
+    return;
+  }
+  const store = stores.find((item) => item.id === storeId);
+  if (store) store.tags = store.tags.filter((item) => normalize(item) !== normalize(label));
+  adminStoreSettingsMessage.textContent = "Etiqueta excluída da loja.";
+  setStoreRowMessage(row, "Etiqueta excluída.", false);
+  await refreshAppData();
 }
 
 async function createAdminProfessional(storeId, row) {
