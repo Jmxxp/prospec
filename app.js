@@ -22,8 +22,16 @@ const STORE_COLORS = {
   black: { label: "Preto", value: "#111827" },
 };
 const STORE_SESSION_KEY = "prospec.storeSession";
+const THEME_KEY = "prospec.theme";
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+  },
+});
 
 const authScreen = document.querySelector("#authScreen");
 const authForm = document.querySelector("#authForm");
@@ -127,6 +135,7 @@ const calendarMonthLabel = document.querySelector("#calendarMonthLabel");
 const calendarGrid = document.querySelector("#calendarGrid");
 const colorLabelTexts = document.querySelectorAll("[data-color-label-text]");
 const colorFilterOptions = document.querySelectorAll("[data-color-filter-option]");
+const themeToggleButtons = document.querySelectorAll("[data-theme-toggle]");
 
 let authMode = "login";
 let currentContext = null;
@@ -371,6 +380,15 @@ function getDisplayName(prospect) {
 function getGoalStyle(count, goal = dailyGoal) {
   const target = Number(goal) > 0 ? Number(goal) : 15;
   const ratio = Math.min(count / target, 1);
+  if (document.body.classList.contains("is-dark-mode")) {
+    const hue = Math.round(0 + ratio * 142);
+    const lightness = Math.round(22 + ratio * 16);
+    return {
+      background: `hsl(${hue} 72% ${lightness}%)`,
+      color: "#f8fafc",
+      isOverGoal: count > target,
+    };
+  }
   const hue = Math.round(4 + ratio * 126);
   const lightness = Math.round(88 - ratio * 38);
   return {
@@ -404,11 +422,13 @@ function isInvalidStoreSessionError(error) {
 
 function saveStoreSession(context) {
   if (context?.type !== "store" || !context.token) return;
+  const storeId = context.store?.store_id || context.store?.id || context.storeId || null;
   localStorage.setItem(
     STORE_SESSION_KEY,
     JSON.stringify({
       token: context.token,
       store: context.store || null,
+      storeId,
       adminAccess: Boolean(context.adminUser),
     })
   );
@@ -428,7 +448,7 @@ function clearStoreSession() {
 }
 
 function getCurrentStoreId() {
-  return currentContext?.store?.store_id || currentContext?.store?.id || null;
+  return currentContext?.store?.store_id || currentContext?.store?.id || currentContext?.storeId || null;
 }
 
 function getLastSelectionKey() {
@@ -465,6 +485,33 @@ function applyLastProspectSelection() {
     : [];
   renderProfessionalOptions(professionalId);
   renderTags(tags);
+}
+
+function getStoredTheme() {
+  return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  const isDark = theme === "dark";
+  document.body.classList.toggle("is-dark-mode", isDark);
+  document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+  themeToggleButtons.forEach((button) => {
+    button.setAttribute("aria-label", isDark ? "Ativar modo claro" : "Ativar modo escuro");
+    button.title = isDark ? "Ativar modo claro" : "Ativar modo escuro";
+    button.innerHTML = `<i class="fa-solid ${isDark ? "fa-sun" : "fa-moon"}" aria-hidden="true"></i>`;
+  });
+}
+
+function initializeTheme() {
+  applyTheme(getStoredTheme());
+}
+
+function toggleTheme() {
+  const nextTheme = document.body.classList.contains("is-dark-mode") ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, nextTheme);
+  applyTheme(nextTheme);
+  if (currentContext) renderSummary();
+  if (!analysisOverlay.hidden) renderAnalysis();
 }
 
 function adminEmailFromUsername() {
@@ -1521,7 +1568,7 @@ async function storeLogin() {
     authMessage.textContent = getSupabaseErrorMessage(error);
     return;
   }
-  currentContext = { type: "store", token: data.token, store: data };
+  currentContext = { type: "store", token: data.token, store: data, storeId: data.store_id || data.id || null };
   saveStoreSession(currentContext);
   resetAuthForm();
   setTopForContext();
@@ -1544,7 +1591,12 @@ async function login() {
 
   const storeResult = await supabaseClient.rpc("store_login", { p_username: username, p_password: password });
   if (!storeResult.error) {
-    currentContext = { type: "store", token: storeResult.data.token, store: storeResult.data };
+    currentContext = {
+      type: "store",
+      token: storeResult.data.token,
+      store: storeResult.data,
+      storeId: storeResult.data.store_id || storeResult.data.id || null,
+    };
     saveStoreSession(currentContext);
     resetAuthForm();
     setTopForContext();
@@ -1819,7 +1871,7 @@ async function accessStoreFromAdmin(store) {
     adminStoreSettingsMessage.textContent = getSupabaseErrorMessage(error);
     return;
   }
-  currentContext = { type: "store", token: data.token, store: data, adminUser: currentContext.user };
+  currentContext = { type: "store", token: data.token, store: data, storeId: data.store_id || data.id || store.id || null, adminUser: currentContext.user };
   saveStoreSession(currentContext);
   setAnalysisOpen(false);
   setAdminSettingsOpen(false);
@@ -1935,22 +1987,46 @@ async function deleteProspect(id) {
   else await refreshAppData();
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getPersistedAuthSession() {
+  const firstAttempt = await supabaseClient.auth.getSession();
+  if (firstAttempt.data.session?.user) return firstAttempt.data;
+  await wait(150);
+  return (await supabaseClient.auth.getSession()).data;
+}
+
 async function bootstrap() {
+  initializeTheme();
   initializeFilters();
   renderColorLabels();
   renderTags();
-  const { data } = await supabaseClient.auth.getSession();
+  const data = await getPersistedAuthSession();
   const storedStoreSession = getStoredStoreSession();
   if (storedStoreSession) {
+    const storedStoreId = storedStoreSession.storeId || storedStoreSession.store?.store_id || storedStoreSession.store?.id || null;
     currentContext = {
       type: "store",
       token: storedStoreSession.token,
-      store: storedStoreSession.store,
+      store: storedStoreSession.store || (storedStoreId ? { id: storedStoreId, store_id: storedStoreId } : null),
+      storeId: storedStoreId,
       adminUser: storedStoreSession.adminAccess ? data.session?.user : null,
     };
     try {
       setTopForContext();
       await refreshAppData();
+      if (!currentContext) {
+        if (data.session?.user) {
+          currentContext = { type: "admin", user: data.session.user };
+          setTopForContext();
+          await refreshAppData();
+          showApp();
+          setTopForContext();
+        }
+        return;
+      }
       showApp();
       setTopForContext();
       return;
@@ -2034,6 +2110,7 @@ monthFilter.addEventListener("change", renderProspects);
 statusFilter.addEventListener("change", renderProspects);
 hasPhoneFilter.addEventListener("change", renderProspects);
 hasCpfFilter.addEventListener("change", renderProspects);
+themeToggleButtons.forEach((button) => button.addEventListener("click", toggleTheme));
 analysisToggle.addEventListener("click", () => setAnalysisOpen(analysisOverlay.hidden, null));
 analysisClose.addEventListener("click", () => setAnalysisOpen(false));
 analysisOverlay.addEventListener("click", (event) => {

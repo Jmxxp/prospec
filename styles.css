@@ -17,8 +17,30 @@
   --red: #dc2626;
 }
 
+body.is-dark-mode {
+  --bg: #0b1220;
+  --surface: #111827;
+  --surface-soft: #1e293b;
+  --text: #e5edf8;
+  --muted: #9fb0c8;
+  --line: #334155;
+  --primary: #60a5fa;
+  --primary-dark: #93c5fd;
+  --danger: #f87171;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+  --card-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+}
+
 * {
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 body {
@@ -31,6 +53,30 @@ body {
 
 body.is-modal-open {
   overflow: hidden;
+}
+
+.theme-toggle {
+  position: fixed;
+  z-index: 60;
+  top: 16px;
+  right: 16px;
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+}
+
+.inline-theme-toggle {
+  position: static;
+  z-index: auto;
+  flex: 0 0 auto;
+  box-shadow: 0 8px 22px rgba(22, 32, 51, 0.05);
 }
 
 button,
@@ -122,6 +168,189 @@ button {
   background: var(--surface-soft);
   color: var(--text);
   font-weight: 820;
+}
+
+body.is-dark-mode .auth-card,
+body.is-dark-mode .admin-view,
+body.is-dark-mode .admin-settings-panel,
+body.is-dark-mode .admin-store-create-panel,
+body.is-dark-mode .admin-store-settings-panel,
+body.is-dark-mode .admin-password-panel,
+body.is-dark-mode .admin-store-settings-row,
+body.is-dark-mode .store-mini-manager,
+body.is-dark-mode .store-professional-row,
+body.is-dark-mode .admin-overview-card,
+body.is-dark-mode .admin-store-card,
+body.is-dark-mode .admin-store-metrics div,
+body.is-dark-mode .admin-comparison div,
+body.is-dark-mode .admin-professional-performance,
+body.is-dark-mode .admin-professional-row,
+body.is-dark-mode .admin-store-chart,
+body.is-dark-mode .admin-trend-chart,
+body.is-dark-mode .analysis-panel,
+body.is-dark-mode .summary-item,
+body.is-dark-mode .period-card,
+body.is-dark-mode .calendar-panel,
+body.is-dark-mode .calendar-day,
+body.is-dark-mode .delete-store-panel,
+body.is-dark-mode .panel,
+body.is-dark-mode .filters-panel,
+body.is-dark-mode .prospect-card {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+}
+
+body.is-dark-mode .auth-mode,
+body.is-dark-mode .today-counter,
+body.is-dark-mode .list-toolbar,
+body.is-dark-mode .tag-editor,
+body.is-dark-mode .professional-picker,
+body.is-dark-mode .calendar-empty,
+body.is-dark-mode .period-grid div,
+body.is-dark-mode .empty-state,
+body.is-dark-mode .card-notes,
+body.is-dark-mode .filters-panel .check-filter,
+body.is-dark-mode .store-tags-preview .tag-chip,
+body.is-dark-mode .meta-chip,
+body.is-dark-mode .tag-chip,
+body.is-dark-mode .professional-empty,
+body.is-dark-mode .tag-option,
+body.is-dark-mode .professional-option {
+  border-color: var(--line);
+  background: var(--surface-soft);
+  color: var(--text);
+}
+
+body.is-dark-mode .auth-mode-button.is-active,
+body.is-dark-mode .admin-store-card,
+body.is-dark-mode .prospect-card,
+body.is-dark-mode .calendar-day-count {
+  background: #162235;
+  color: var(--text);
+}
+
+body.is-dark-mode input,
+body.is-dark-mode select,
+body.is-dark-mode textarea {
+  border-color: var(--line);
+  background: #0f172a;
+  color: var(--text);
+}
+
+body.is-dark-mode input::placeholder,
+body.is-dark-mode textarea::placeholder {
+  color: rgba(159, 176, 200, 0.58);
+}
+
+body.is-dark-mode input:focus,
+body.is-dark-mode select:focus,
+body.is-dark-mode textarea:focus {
+  background: #111827;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.16);
+}
+
+body.is-dark-mode h1,
+body.is-dark-mode h2,
+body.is-dark-mode h3,
+body.is-dark-mode h4,
+body.is-dark-mode .card-name,
+body.is-dark-mode .admin-store-header h3,
+body.is-dark-mode .admin-overview-card span,
+body.is-dark-mode .admin-store-metrics strong,
+body.is-dark-mode .admin-comparison strong,
+body.is-dark-mode .period-grid span,
+body.is-dark-mode .calendar-day-number,
+body.is-dark-mode .admin-professional-row b,
+body.is-dark-mode .admin-professional-row strong {
+  color: var(--text);
+}
+
+body.is-dark-mode label,
+body.is-dark-mode legend,
+body.is-dark-mode .helper-text,
+body.is-dark-mode .card-meta,
+body.is-dark-mode .card-notes,
+body.is-dark-mode .date-grid,
+body.is-dark-mode .calendar-header p,
+body.is-dark-mode .admin-store-username,
+body.is-dark-mode .admin-store-metrics span,
+body.is-dark-mode .admin-comparison span,
+body.is-dark-mode .admin-professional-row span,
+body.is-dark-mode .admin-professional-performance-header span,
+body.is-dark-mode .admin-professional-empty,
+body.is-dark-mode .admin-bar-row span,
+body.is-dark-mode .admin-bar-row strong,
+body.is-dark-mode .admin-trend-item span,
+body.is-dark-mode .weekday-cell {
+  color: var(--muted);
+}
+
+body.is-dark-mode .secondary-button,
+body.is-dark-mode .icon-button,
+body.is-dark-mode .password-toggle,
+body.is-dark-mode .card-actions button,
+body.is-dark-mode .card-actions a {
+  border-color: var(--line);
+  background: var(--surface-soft);
+  color: var(--text);
+}
+
+body.is-dark-mode .filter-button,
+body.is-dark-mode .analysis-button,
+body.is-dark-mode .admin-period-button.is-active,
+body.is-dark-mode .tag-option:has(input:checked),
+body.is-dark-mode .professional-option:has(input:checked),
+body.is-dark-mode .check-filter:has(input:checked) {
+  border-color: #60a5fa;
+  background: #172554;
+  color: #bfdbfe;
+}
+
+body.is-dark-mode .filter-button[aria-expanded="true"],
+body.is-dark-mode .analysis-button[aria-expanded="true"],
+body.is-dark-mode .primary-button {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+body.is-dark-mode .filter-count,
+body.is-dark-mode .return-badge,
+body.is-dark-mode .color-badge {
+  background: #1e293b;
+  color: var(--text);
+}
+
+body.is-dark-mode .tag-chip {
+  border-color: #1d4ed8;
+  background: #172554;
+  color: #bfdbfe;
+}
+
+body.is-dark-mode .professional-chip {
+  border-color: #15803d;
+  background: #052e16;
+  color: #bbf7d0;
+}
+
+body.is-dark-mode .return-badge.is-returned,
+body.is-dark-mode .card-actions .mark-returned-button {
+  border-color: #15803d;
+  background: #052e16;
+  color: #bbf7d0;
+}
+
+body.is-dark-mode .card-actions .unmark-returned-button {
+  border-color: #c2410c;
+  background: #431407;
+  color: #fed7aa;
+}
+
+body.is-dark-mode .card-actions .whatsapp-button {
+  border-color: #15803d;
+  background: #052e16;
+  color: #bbf7d0;
 }
 
 .app-shell {
@@ -1008,7 +1237,7 @@ h2 {
 
 .analysis-overlay {
   position: fixed;
-  z-index: 50;
+  z-index: 120;
   inset: 0;
   display: grid;
   place-items: start center;
@@ -1209,6 +1438,21 @@ h2 {
   font-size: 1.25rem;
   line-height: 1;
   font-weight: 900;
+}
+
+body.is-dark-mode .calendar-day {
+  border-color: rgba(248, 250, 252, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 10px 22px rgba(0, 0, 0, 0.2);
+}
+
+body.is-dark-mode .calendar-day.is-today {
+  outline: 4px solid rgba(96, 165, 250, 0.72);
+}
+
+body.is-dark-mode .calendar-day-count {
+  background: #020617;
+  color: #f8fafc;
+  box-shadow: 0 0 0 2px rgba(248, 250, 252, 0.14);
 }
 
 @keyframes goalGlow {
@@ -1418,6 +1662,57 @@ textarea:focus {
 
 .status-option:has(input[value="green"]) {
   --status-color: var(--green);
+}
+
+body.is-dark-mode .status-option {
+  border-width: 2px;
+  color: #f8fafc;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+body.is-dark-mode .status-option:has(input[value="red"]) {
+  border-color: #ef4444;
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
+body.is-dark-mode .status-option:has(input[value="yellow"]) {
+  border-color: #facc15;
+  background: #713f12;
+  color: #fef3c7;
+}
+
+body.is-dark-mode .status-option:has(input[value="blue"]) {
+  border-color: #60a5fa;
+  background: #1e3a8a;
+  color: #dbeafe;
+}
+
+body.is-dark-mode .status-option:has(input[value="green"]) {
+  border-color: #22c55e;
+  background: #14532d;
+  color: #dcfce7;
+}
+
+body.is-dark-mode .status-option:has(input:checked) {
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.34), 0 12px 24px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+body.is-dark-mode .status-option:has(input[value="red"]:checked) {
+  background: #dc2626;
+}
+
+body.is-dark-mode .status-option:has(input[value="yellow"]:checked) {
+  background: #ca8a04;
+}
+
+body.is-dark-mode .status-option:has(input[value="blue"]:checked) {
+  background: #2563eb;
+}
+
+body.is-dark-mode .status-option:has(input[value="green"]:checked) {
+  background: #16a34a;
 }
 
 .swatch {
