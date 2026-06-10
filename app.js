@@ -1233,11 +1233,11 @@ function renderProspects() {
     const notes = card.querySelector(".card-notes");
     const tags = card.querySelector(".card-tags");
     const professional = card.querySelector(".card-professional");
+    const infoRow = card.querySelector(".card-info-row");
     const digits = onlyDigits(prospect.phone);
     card.dataset.color = prospect.color;
     card.querySelector(".card-name").textContent = getDisplayName(prospect);
     card.querySelector(".created-date").textContent = formatDateTimeWithWeekday(prospect.createdAt);
-    card.querySelector(".returned-date").textContent = formatDateTime(prospect.returnedAt);
     if (prospect.notes) notes.textContent = prospect.notes;
     else notes.remove();
     if (prospect.tags?.length) {
@@ -1246,19 +1246,24 @@ function renderProspects() {
       tags.remove();
     }
     if (prospect.professionalName) {
-      professional.append(createChip(`Profissional: ${prospect.professionalName}`, "professional-chip"));
+      professional.innerHTML = `
+        <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+        <span>Profissional</span>
+        <strong>${escapeHtml(prospect.professionalName)}</strong>
+      `;
     } else {
-      professional.remove();
+      infoRow.remove();
     }
     if (prospect.phone) meta.append(createChip(prospect.phone));
     if (prospect.cpf) meta.append(createChip(prospect.cpf));
     if (!prospect.phone && !prospect.cpf) meta.append(createChip("Sem telefone ou CPF"));
     colorBadge.textContent = getColorLabel(prospect.color);
     if (prospect.returnedAt) {
-      badge.textContent = "Voltou";
+      badge.innerHTML = `<i class="fa-solid fa-check" aria-hidden="true"></i><span>Voltou</span>`;
+      badge.title = formatDateTime(prospect.returnedAt);
       badge.classList.add("is-returned");
     } else {
-      badge.remove();
+      badge.textContent = "Não voltou";
     }
     returnButton.hidden = Boolean(prospect.returnedAt);
     unmarkReturnButton.hidden = !prospect.returnedAt;
@@ -2073,6 +2078,20 @@ function handleFilterChange() {
   renderProspects();
 }
 
+function handleProspectFormEnter(event) {
+  if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+  const fields = [nameInput, phoneInput, cpfInput, notesInput];
+  const currentIndex = fields.indexOf(event.target);
+  if (currentIndex === -1) return;
+
+  event.preventDefault();
+  if (currentIndex < fields.length - 1) {
+    fields[currentIndex + 1].focus();
+    return;
+  }
+  form.requestSubmit();
+}
+
 phoneInput.addEventListener("input", () => {
   phoneInput.value = formatPhone(phoneInput.value);
 });
@@ -2097,6 +2116,7 @@ saveAdminPasswordBtn.addEventListener("click", updateStorePassword);
 cancelDeleteStoreBtn.addEventListener("click", closeDeleteStore);
 confirmDeleteStoreBtn.addEventListener("click", confirmDeleteStore);
 form.addEventListener("submit", upsertProspect);
+form.addEventListener("keydown", handleProspectFormEnter);
 clearFormBtn.addEventListener("click", resetForm);
 searchInput.addEventListener("input", renderProspects);
 filtersToggle.addEventListener("click", () => setFiltersOpen(filtersPanel.hidden));

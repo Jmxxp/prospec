@@ -76,6 +76,10 @@ body.is-modal-open {
   position: static;
   z-index: auto;
   flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  font-size: 1.05rem;
   box-shadow: 0 8px 22px rgba(22, 32, 51, 0.05);
 }
 
@@ -224,7 +228,6 @@ body.is-dark-mode .professional-option {
 
 body.is-dark-mode .auth-mode-button.is-active,
 body.is-dark-mode .admin-store-card,
-body.is-dark-mode .prospect-card,
 body.is-dark-mode .calendar-day-count {
   background: #162235;
   color: var(--text);
@@ -246,9 +249,16 @@ body.is-dark-mode textarea::placeholder {
 body.is-dark-mode input:focus,
 body.is-dark-mode select:focus,
 body.is-dark-mode textarea:focus {
-  background: #111827;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.16);
+  background: #0f1f3d;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.32), 0 0 0 1px rgba(191, 219, 254, 0.36), 0 12px 26px rgba(37, 99, 235, 0.24);
+}
+
+body.is-dark-mode #prospectForm input:focus,
+body.is-dark-mode #prospectForm textarea:focus {
+  background: #102a56;
+  border-color: #bfdbfe;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.42), 0 0 0 1px rgba(219, 234, 254, 0.42), 0 14px 28px rgba(37, 99, 235, 0.3);
 }
 
 body.is-dark-mode h1,
@@ -272,7 +282,7 @@ body.is-dark-mode legend,
 body.is-dark-mode .helper-text,
 body.is-dark-mode .card-meta,
 body.is-dark-mode .card-notes,
-body.is-dark-mode .date-grid,
+body.is-dark-mode .created-date-block,
 body.is-dark-mode .calendar-header p,
 body.is-dark-mode .admin-store-username,
 body.is-dark-mode .admin-store-metrics span,
@@ -316,10 +326,10 @@ body.is-dark-mode .primary-button {
 }
 
 body.is-dark-mode .filter-count,
-body.is-dark-mode .return-badge,
-body.is-dark-mode .color-badge {
-  background: #1e293b;
-  color: var(--text);
+body.is-dark-mode .return-badge {
+  background: #1f2937;
+  color: #d1d5db;
+  border-color: #4b5563;
 }
 
 body.is-dark-mode .tag-chip {
@@ -1587,9 +1597,16 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  background: rgba(255, 255, 255, 0.95);
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  background: #ffffff;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.24), 0 10px 24px rgba(37, 99, 235, 0.12);
+}
+
+#prospectForm input:focus,
+#prospectForm textarea:focus {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.28), 0 0 0 1px rgba(37, 99, 235, 0.42), 0 12px 26px rgba(37, 99, 235, 0.16);
 }
 
 .status-picker {
@@ -1845,7 +1862,7 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
 }
 
 #prospectForm > .primary-button {
-  margin-top: 0;
+  margin-top: 10px;
   min-height: 38px;
   font-size: 0.92rem;
 }
@@ -1988,49 +2005,116 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
 
 .prospect-card {
   --status-color: var(--blue);
+  --status-bg: #eff6ff;
+  --status-text: #1d4ed8;
+  --status-soft: rgba(37, 99, 235, 0.1);
   display: grid;
-  gap: 10px;
-  padding: 14px;
+  gap: 4px;
+  padding: 12px 16px 12px 20px;
   border: 1px solid rgba(219, 227, 238, 0.9);
-  border-left: 6px solid var(--status-color);
+  border-left: 0;
   border-radius: 8px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.84));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.88));
   box-shadow: var(--card-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.prospect-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 8px;
+  background: linear-gradient(180deg, var(--status-color), color-mix(in srgb, var(--status-color) 58%, #0f172a));
 }
 
 .prospect-card[data-color="blue"] {
   --status-color: var(--blue);
+  --status-bg: #dbeafe;
+  --status-text: #1d4ed8;
+  --status-soft: rgba(37, 99, 235, 0.14);
 }
 
 .prospect-card[data-color="green"] {
   --status-color: var(--green);
+  --status-bg: #dcfce7;
+  --status-text: #166534;
+  --status-soft: rgba(22, 163, 74, 0.14);
 }
 
 .prospect-card[data-color="yellow"] {
   --status-color: var(--yellow);
+  --status-bg: #fef3c7;
+  --status-text: #92400e;
+  --status-soft: rgba(234, 179, 8, 0.18);
 }
 
 .prospect-card[data-color="red"] {
   --status-color: var(--red);
+  --status-bg: #fee2e2;
+  --status-text: #991b1b;
+  --status-soft: rgba(220, 38, 38, 0.14);
+}
+
+body.is-dark-mode .prospect-card {
+  background: linear-gradient(180deg, #142033, #111c2e);
+}
+
+body.is-dark-mode .prospect-card[data-color="blue"] {
+  --status-bg: #1e3a8a;
+  --status-text: #dbeafe;
+  --status-soft: rgba(96, 165, 250, 0.16);
+}
+
+body.is-dark-mode .prospect-card[data-color="green"] {
+  --status-bg: #14532d;
+  --status-text: #dcfce7;
+  --status-soft: rgba(34, 197, 94, 0.16);
+}
+
+body.is-dark-mode .prospect-card[data-color="yellow"] {
+  --status-bg: #713f12;
+  --status-text: #fef3c7;
+  --status-soft: rgba(250, 204, 21, 0.18);
+}
+
+body.is-dark-mode .prospect-card[data-color="red"] {
+  --status-bg: #7f1d1d;
+  --status-text: #fecaca;
+  --status-soft: rgba(248, 113, 113, 0.16);
 }
 
 .card-main {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, auto);
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   align-items: start;
 }
 
+.card-title-block {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.card-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .card-name {
-  margin-bottom: 8px;
+  margin-bottom: 0;
   color: #0f172a;
-  font-size: 1.18rem;
+  font-size: 1.28rem;
   line-height: 1.15;
 }
 
 .card-meta,
 .card-notes,
-.date-grid {
+.created-date-block {
   color: var(--muted);
 }
 
@@ -2049,7 +2133,8 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
 .card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .meta-chip,
@@ -2109,8 +2194,42 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
   font-weight: 840;
 }
 
+.card-professional {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--status-color) 34%, var(--line));
+  border-radius: 999px;
+  background: var(--status-soft);
+  color: var(--status-text);
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
+.card-professional i {
+  font-size: 0.82rem;
+}
+
+.card-professional span {
+  color: inherit;
+  opacity: 0.74;
+}
+
+.card-professional strong {
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .card-notes {
-  padding: 12px 13px;
+  padding: 10px 12px;
   border-radius: 8px;
   background: rgba(241, 245, 249, 0.78);
   color: #334155;
@@ -2118,9 +2237,14 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
   line-height: 1.45;
 }
 
+/* Hide notes block when empty to avoid large gaps */
+.card-notes:empty {
+  display: none;
+}
+
 .card-badges {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  justify-items: end;
   justify-content: flex-end;
   gap: 7px;
 }
@@ -2128,49 +2252,126 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
 .return-badge,
 .color-badge {
   flex: 0 0 auto;
-  padding: 6px 10px;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 12px;
   border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 850;
+  font-size: 0.8rem;
+  font-weight: 900;
 }
 
 .color-badge {
-  background: #eef2ff;
-  color: #1e293b;
-  background: color-mix(in srgb, var(--status-color) 12%, white);
-  color: color-mix(in srgb, var(--status-color) 70%, #0f172a);
+  border: 1px solid color-mix(in srgb, var(--status-color) 42%, transparent);
+  background: var(--status-bg);
+  color: var(--status-text);
 }
 
 .return-badge {
-  background: #eef2ff;
-  color: #3730a3;
+  gap: 4px;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid #dde2ec;
+  border-radius: 6px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .return-badge.is-returned {
+  border-color: #16a34a;
   background: #dcfce7;
   color: #166534;
 }
 
-.date-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding-top: 2px;
-  font-size: 0.82rem;
+.card-info-row {
+  display: flex;
+  align-items: center;
 }
 
-.date-grid strong {
-  color: var(--text);
+.card-info-row {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
-.date-grid em {
+.prospect-card {
+  align-items: start;
+}
+
+.created-date-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid #dde2ec;
+  border-radius: 6px;
+  background: #f9fafb;
+  font-size: 0.72rem;
+}
+
+.created-date-block {
+  justify-self: unset;
+  min-width: unset;
+}
+
+.created-date-block strong {
+  color: #9ca3af;
+  font-size: 0.65rem;
+  line-height: 1;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.created-date-block em {
   font-style: normal;
+  line-height: 1.15;
+  color: #b4bccb;
+}
+
+body.is-dark-mode .created-date-block {
+  border-color: #4b5563;
+  background: #1f2937;
+  color: #d1d5db;
+}
+
+.card-footer {
+  display: none;
 }
 
 .card-actions {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.card-footer-meta {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  justify-content: flex-end;
+  margin-top: -1px;
+}
+
+/* New bottom row wrapper to align actions and footer on same line */
+.card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* Ensure actions stay left and footer stays right without large vertical space */
+.card-bottom .card-actions {
+  margin-top: 0;
+}
+
+.card-bottom .card-footer-meta {
+  margin-top: 0;
 }
 
 .card-actions button,
@@ -2178,13 +2379,15 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 0 12px;
-  background: var(--surface-soft);
-  color: var(--text);
-  border: 1px solid var(--line);
+  min-height: 32px;
+  padding: 0 10px;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #dde2ec;
   text-decoration: none;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
+  border-radius: 5px;
+  font-weight: 700;
 }
 
 .card-actions .mark-returned-button {
@@ -2249,8 +2452,7 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
   .admin-store-header,
   .analysis-header,
   .calendar-header,
-  .panel-header,
-  .card-main {
+  .panel-header {
     flex-direction: row;
   }
 
@@ -2314,6 +2516,12 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
 
   .admin-professional-row span {
     text-align: left;
+  }
+
+  .card-main,
+  .card-info-row,
+  .card-footer {
+    grid-template-columns: 1fr;
   }
 
   .analysis-header,
@@ -2406,10 +2614,21 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
 
   .summary-grid,
   .compact-summary,
-  .date-grid,
   .status-picker,
   .period-grid {
     grid-template-columns: 1fr;
+  }
+
+  .card-title-row,
+  .card-badges,
+  .card-tags {
+    justify-content: flex-start;
+    justify-items: start;
+  }
+
+  .created-date-block {
+    justify-self: stretch;
+    min-width: 0;
   }
 
   .calendar-grid {
@@ -2474,7 +2693,6 @@ body.is-dark-mode .status-option:has(input[value="green"]:checked) {
   .panel-header,
   .card-main {
     align-items: stretch;
-    flex-direction: column;
   }
 
   .secondary-button,
