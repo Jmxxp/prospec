@@ -88,6 +88,20 @@ const submitLabel = document.querySelector("#submitLabel");
 const clearFormBtn = document.querySelector("#clearFormBtn");
 const searchInput = document.querySelector("#searchInput");
 const statusFilter = document.querySelector("#statusFilter");
+const filtersToggle = document.querySelector("#filtersToggle");
+const filtersPanel = document.querySelector("#filtersPanel");
+const activeFiltersCount = document.querySelector("#activeFiltersCount");
+const periodFilter = document.querySelector("#periodFilter");
+const dateFilter = document.querySelector("#dateFilter");
+const weekFilter = document.querySelector("#weekFilter");
+const monthFilter = document.querySelector("#monthFilter");
+const dateFilterLabel = document.querySelector("#dateFilterLabel");
+const weekFilterLabel = document.querySelector("#weekFilterLabel");
+const monthFilterLabel = document.querySelector("#monthFilterLabel");
+const hasPhoneFilter = document.querySelector("#hasPhoneFilter");
+const hasCpfFilter = document.querySelector("#hasCpfFilter");
+const listEyebrow = document.querySelector(".list-header .eyebrow");
+const listTitle = document.querySelector("#list-title");
 const prospectsList = document.querySelector("#prospectsList");
 const emptyState = document.querySelector("#emptyState");
 const template = document.querySelector("#prospectCardTemplate");
@@ -125,6 +139,11 @@ let calendarDate = new Date();
 let adminPeriodByStore = {};
 let analysisScopeStore = null;
 let storeToDelete = null;
+let realtimeChannel = null;
+let realtimeRefreshTimer = null;
+let realtimeSubscriptionKey = "";
+
+const LAST_SELECTION_KEY_PREFIX = "prospec.lastSelection";
 
 function normalize(value) {
   return String(value || "")
@@ -229,6 +248,59 @@ function addMonths(date, amount) {
 
 function addYears(date, amount) {
   return new Date(date.getFullYear() + amount, 0, 1);
+}
+
+function formatDateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatMonthInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function getISOWeekParts(date) {
+  const copy = startOfDay(date);
+  copy.setDate(copy.getDate() + 3 - ((copy.getDay() + 6) % 7));
+  const weekOne = new Date(copy.getFullYear(), 0, 4);
+  return {
+    year: copy.getFullYear(),
+    week: 1 + Math.round(((copy - weekOne) / 86400000 - 3 + ((weekOne.getDay() + 6) % 7)) / 7),
+  };
+}
+
+function formatWeekInputValue(date) {
+  const parts = getISOWeekParts(date);
+  return `${parts.year}-W${String(parts.week).padStart(2, "0")}`;
+}
+
+function parseDateInput(value) {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function parseMonthInput(value) {
+  if (!value) return null;
+  const [year, month] = value.split("-").map(Number);
+  if (!year || !month) return null;
+  return new Date(year, month - 1, 1);
+}
+
+function parseWeekInput(value) {
+  const match = String(value || "").match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const week = Number(match[2]);
+  if (!year || week < 1 || week > 53) return null;
+  const janFourth = new Date(year, 0, 4);
+  const weekOneStart = startOfWeek(janFourth);
+  return addDays(weekOneStart, (week - 1) * 7);
 }
 
 function isBetween(dateValue, start, end) {
@@ -355,19 +427,62 @@ function clearStoreSession() {
   localStorage.removeItem(STORE_SESSION_KEY);
 }
 
+function getCurrentStoreId() {
+  return currentContext?.store?.store_id || currentContext?.store?.id || null;
+}
+
+function getLastSelectionKey() {
+  const storeId = getCurrentStoreId();
+  return storeId ? `${LAST_SELECTION_KEY_PREFIX}.${storeId}` : LAST_SELECTION_KEY_PREFIX;
+}
+
+function saveLastProspectSelection({ professionalId, tags }) {
+  if (currentContext?.type !== "store") return;
+  localStorage.setItem(
+    getLastSelectionKey(),
+    JSON.stringify({
+      professionalId: professionalId || "",
+      tags: Array.isArray(tags) ? tags : [],
+    })
+  );
+}
+
+function getLastProspectSelection() {
+  try {
+    return JSON.parse(localStorage.getItem(getLastSelectionKey()) || "null") || {};
+  } catch {
+    return {};
+  }
+}
+
+function applyLastProspectSelection() {
+  const lastSelection = getLastProspectSelection();
+  const professionalId = availableProfessionals.some((item) => item.id === lastSelection.professionalId)
+    ? lastSelection.professionalId
+    : null;
+  const tags = Array.isArray(lastSelection.tags)
+    ? lastSelection.tags.filter((tag) => availableTags.some((item) => normalize(item) === normalize(tag)))
+    : [];
+  renderProfessionalOptions(professionalId);
+  renderTags(tags);
+}
+
 function adminEmailFromUsername() {
   const username = cleanUsername(authUsername.value);
   return username ? `${username}@prospec.local` : "";
 }
 
-function resetForm() {
+function resetForm({ keepLastSelection = false } = {}) {
   form.reset();
   editingIdInput.value = "";
   submitLabel.textContent = "Registrar prospecção";
   formError.textContent = "";
   setSelectedColor("blue");
-  setSelectedTags([]);
-  renderProfessionalOptions();
+  if (keepLastSelection) applyLastProspectSelection();
+  else {
+    renderTags([]);
+    renderProfessionalOptions();
+  }
 }
 
 function resetAuthForm() {
@@ -469,17 +584,71 @@ function buildSearchText(prospect) {
   ].join(" "));
 }
 
+function getSelectedPeriodWindow() {
+  const period = periodFilter.value;
+  if (period === "all") return { start: null, end: null, label: "todos", title: "Todas as prospecções" };
+  if (period === "day") {
+    const start = parseDateInput(dateFilter.value) || startOfDay(new Date());
+    return { start, end: addDays(start, 1), label: "dia", title: "Prospecções do dia" };
+  }
+  if (period === "week") {
+    const start = parseWeekInput(weekFilter.value) || startOfWeek(new Date());
+    return { start, end: addDays(start, 7), label: "semana", title: "Prospecções da semana" };
+  }
+  if (period === "month") {
+    const start = parseMonthInput(monthFilter.value) || startOfMonth(new Date());
+    return { start, end: addMonths(start, 1), label: "mês", title: "Prospecções do mês" };
+  }
+  const start = startOfDay(new Date());
+  return { start, end: addDays(start, 1), label: "hoje", title: "Prospecções do dia" };
+}
+
+function updateFilterSummary() {
+  const periodWindow = getSelectedPeriodWindow();
+  const period = periodFilter.value;
+  const extraFilters = [
+    period !== "today",
+    statusFilter.value !== "all",
+    hasPhoneFilter.checked,
+    hasCpfFilter.checked,
+    Boolean(searchInput.value.trim()),
+  ].filter(Boolean).length;
+  const periodLabels = {
+    all: "Todos",
+    today: "Hoje",
+    day: dateFilter.value ? formatDateTime(parseDateInput(dateFilter.value)).split(",")[0] : "Dia",
+    week: "Semana",
+    month: monthFilter.value ? new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(parseMonthInput(monthFilter.value)) : "Mês",
+  };
+  listEyebrow.textContent = periodLabels[period] || periodWindow.label;
+  listTitle.textContent = periodWindow.title;
+  const emptyLabels = {
+    todos: "encontrada",
+    hoje: "hoje",
+    dia: "neste dia",
+    semana: "nesta semana",
+    mês: "neste mês",
+  };
+  emptyState.querySelector("strong").textContent = `Nenhuma prospecção ${emptyLabels[periodWindow.label] || "encontrada"}`;
+  emptyState.querySelector("span").textContent = "Ajuste os filtros ou cadastre uma nova prospecção.";
+  activeFiltersCount.hidden = extraFilters === 0;
+  activeFiltersCount.textContent = String(extraFilters);
+}
+
 function getFilteredProspects() {
   const query = normalize(searchInput.value);
   const queryDigits = onlyDigits(searchInput.value);
   const filter = statusFilter.value;
+  const periodWindow = getSelectedPeriodWindow();
 
   return prospects
     .filter((prospect) => {
-      if (!isToday(prospect.createdAt)) return false;
+      if (periodWindow.start && !isBetween(prospect.createdAt, periodWindow.start, periodWindow.end)) return false;
       if (filter === "returned" && !prospect.returnedAt) return false;
       if (filter === "not-returned" && prospect.returnedAt) return false;
       if (["blue", "green", "yellow", "red"].includes(filter) && prospect.color !== filter) return false;
+      if (hasPhoneFilter.checked && !onlyDigits(prospect.phone)) return false;
+      if (hasCpfFilter.checked && !onlyDigits(prospect.cpf)) return false;
       if (!query && !queryDigits) return true;
       return buildSearchText(prospect).includes(query) || onlyDigits(`${prospect.phone} ${prospect.cpf}`).includes(queryDigits);
     })
@@ -989,6 +1158,7 @@ function renderProfessionalOptions(selectedId = getSelectedProfessionalId()) {
 }
 
 function renderProspects() {
+  updateFilterSummary();
   const filteredProspects = getFilteredProspects();
   prospectsList.innerHTML = "";
   emptyState.classList.toggle("is-visible", filteredProspects.length === 0);
@@ -998,6 +1168,7 @@ function renderProspects() {
     const badge = card.querySelector(".return-badge");
     const colorBadge = card.querySelector(".color-badge");
     const returnButton = card.querySelector(".mark-returned-button");
+    const unmarkReturnButton = card.querySelector(".unmark-returned-button");
     const whatsappButton = card.querySelector(".whatsapp-button");
     const notes = card.querySelector(".card-notes");
     const tags = card.querySelector(".card-tags");
@@ -1029,11 +1200,12 @@ function renderProspects() {
     } else {
       badge.remove();
     }
-    returnButton.disabled = Boolean(prospect.returnedAt);
-    returnButton.textContent = prospect.returnedAt ? "Volta registrada" : "Registrar volta";
+    returnButton.hidden = Boolean(prospect.returnedAt);
+    unmarkReturnButton.hidden = !prospect.returnedAt;
     whatsappButton.href = digits.length >= 10 ? `https://wa.me/55${digits}` : "";
     whatsappButton.classList.toggle("is-hidden", digits.length < 10);
     returnButton.addEventListener("click", () => markReturned(prospect.id));
+    unmarkReturnButton.addEventListener("click", () => unmarkReturned(prospect.id));
     card.querySelector(".edit-button").addEventListener("click", () => editProspect(prospect.id));
     card.querySelector(".delete-button").addEventListener("click", () => deleteProspect(prospect.id));
     prospectsList.append(card);
@@ -1078,6 +1250,68 @@ function fromDbStore(row) {
     professionals: Array.isArray(row.professionals) ? row.professionals : [],
     createdAt: row.created_at,
   };
+}
+
+function getRealtimeSubscriptionKey() {
+  if (currentContext?.type === "admin") return `admin:${currentContext.user?.id || "active"}`;
+  if (currentContext?.type === "store") return `store:${getCurrentStoreId() || currentContext.token || "active"}`;
+  return "";
+}
+
+function stopRealtimeSubscription() {
+  if (realtimeRefreshTimer) {
+    clearTimeout(realtimeRefreshTimer);
+    realtimeRefreshTimer = null;
+  }
+  if (realtimeChannel) {
+    supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+  realtimeSubscriptionKey = "";
+}
+
+function scheduleRealtimeRefresh() {
+  if (!currentContext) return;
+  if (realtimeRefreshTimer) clearTimeout(realtimeRefreshTimer);
+  realtimeRefreshTimer = setTimeout(() => {
+    realtimeRefreshTimer = null;
+    refreshAppData();
+  }, 250);
+}
+
+function addRealtimeListener(channel, table, filter = null) {
+  const config = { event: "*", schema: "public", table };
+  if (filter) config.filter = filter;
+  channel.on("postgres_changes", config, scheduleRealtimeRefresh);
+}
+
+function ensureRealtimeSubscription() {
+  const subscriptionKey = getRealtimeSubscriptionKey();
+  if (!subscriptionKey || subscriptionKey === realtimeSubscriptionKey) return;
+  stopRealtimeSubscription();
+  realtimeSubscriptionKey = subscriptionKey;
+
+  if (currentContext?.type === "store") {
+    const storeId = getCurrentStoreId();
+    realtimeChannel = supabaseClient.channel(storeId ? `prospec-store:${storeId}` : `prospec-db-${subscriptionKey}`);
+    realtimeChannel.on("broadcast", { event: "changed" }, scheduleRealtimeRefresh);
+    if (storeId) {
+      addRealtimeListener(realtimeChannel, "prospects", `store_id=eq.${storeId}`);
+      addRealtimeListener(realtimeChannel, "prospect_tags", `store_id=eq.${storeId}`);
+      addRealtimeListener(realtimeChannel, "prospect_professionals", `store_id=eq.${storeId}`);
+      addRealtimeListener(realtimeChannel, "stores", `id=eq.${storeId}`);
+    } else {
+      addRealtimeListener(realtimeChannel, "prospects");
+    }
+  } else if (currentContext?.type === "admin") {
+    realtimeChannel = supabaseClient.channel(`prospec-db-${subscriptionKey}`);
+    addRealtimeListener(realtimeChannel, "stores");
+    addRealtimeListener(realtimeChannel, "prospects");
+    addRealtimeListener(realtimeChannel, "prospect_tags");
+    addRealtimeListener(realtimeChannel, "prospect_professionals");
+  }
+
+  realtimeChannel?.subscribe();
 }
 
 async function loadDailyGoal() {
@@ -1165,8 +1399,12 @@ async function loadStoreData() {
       }))
       .filter((item) => item.id && item.name);
   }
-  renderTags();
-  renderProfessionalOptions();
+  if (editingIdInput.value) {
+    renderTags();
+    renderProfessionalOptions();
+  } else {
+    applyLastProspectSelection();
+  }
   prospects = data.map(fromDbProspect);
 }
 
@@ -1179,9 +1417,13 @@ async function refreshAppData() {
     } else {
       await loadStoreData();
       renderProspects();
+      renderSummary();
     }
+    if (!analysisOverlay.hidden) renderAnalysis();
+    ensureRealtimeSubscription();
   } catch (error) {
     if (currentContext?.type === "store" && isInvalidStoreSessionError(error)) {
+      stopRealtimeSubscription();
       clearStoreSession();
       currentContext = null;
       prospects = [];
@@ -1320,6 +1562,7 @@ async function submitAuth(event) {
 }
 
 async function logout() {
+  stopRealtimeSubscription();
   if (currentContext?.type === "store") {
     await supabaseClient.rpc("store_logout", { p_token: currentContext.token });
     if (currentContext.adminUser) await supabaseClient.auth.signOut();
@@ -1610,12 +1853,19 @@ async function upsertProspect(event) {
     formError.textContent = getSupabaseErrorMessage(error);
     return;
   }
-  resetForm();
+  if (!editingId) saveLastProspectSelection({ professionalId, tags });
+  resetForm({ keepLastSelection: !editingId });
   await refreshAppData();
 }
 
 async function markReturned(id) {
   const { error } = await supabaseClient.rpc("store_mark_returned", { p_token: currentContext.token, p_id: id });
+  if (error) formError.textContent = getSupabaseErrorMessage(error);
+  else await refreshAppData();
+}
+
+async function unmarkReturned(id) {
+  const { error } = await supabaseClient.rpc("store_unmark_returned", { p_token: currentContext.token, p_id: id });
   if (error) formError.textContent = getSupabaseErrorMessage(error);
   else await refreshAppData();
 }
@@ -1650,6 +1900,7 @@ async function deleteProspect(id) {
 }
 
 async function bootstrap() {
+  initializeFilters();
   renderColorLabels();
   renderTags();
   const { data } = await supabaseClient.auth.getSession();
@@ -1668,6 +1919,7 @@ async function bootstrap() {
       setTopForContext();
       return;
     } catch {
+      stopRealtimeSubscription();
       clearStoreSession();
       currentContext = null;
     }
@@ -1681,6 +1933,32 @@ async function bootstrap() {
     return;
   }
   showAuth();
+}
+
+function initializeFilters() {
+  const now = new Date();
+  dateFilter.value = formatDateInputValue(now);
+  weekFilter.value = formatWeekInputValue(now);
+  monthFilter.value = formatMonthInputValue(now);
+  updatePeriodFilterVisibility();
+  updateFilterSummary();
+}
+
+function setFiltersOpen(isOpen) {
+  filtersPanel.hidden = !isOpen;
+  filtersToggle.setAttribute("aria-expanded", String(isOpen));
+}
+
+function updatePeriodFilterVisibility() {
+  const period = periodFilter.value;
+  dateFilterLabel.hidden = period !== "day";
+  weekFilterLabel.hidden = period !== "week";
+  monthFilterLabel.hidden = period !== "month";
+}
+
+function handleFilterChange() {
+  updatePeriodFilterVisibility();
+  renderProspects();
 }
 
 phoneInput.addEventListener("input", () => {
@@ -1709,7 +1987,17 @@ confirmDeleteStoreBtn.addEventListener("click", confirmDeleteStore);
 form.addEventListener("submit", upsertProspect);
 clearFormBtn.addEventListener("click", resetForm);
 searchInput.addEventListener("input", renderProspects);
+filtersToggle.addEventListener("click", () => setFiltersOpen(filtersPanel.hidden));
+document.addEventListener("click", (event) => {
+  if (!filtersPanel.hidden && !event.target.closest(".filter-menu")) setFiltersOpen(false);
+});
+periodFilter.addEventListener("change", handleFilterChange);
+dateFilter.addEventListener("change", renderProspects);
+weekFilter.addEventListener("change", renderProspects);
+monthFilter.addEventListener("change", renderProspects);
 statusFilter.addEventListener("change", renderProspects);
+hasPhoneFilter.addEventListener("change", renderProspects);
+hasCpfFilter.addEventListener("change", renderProspects);
 analysisToggle.addEventListener("click", () => setAnalysisOpen(analysisOverlay.hidden, null));
 analysisClose.addEventListener("click", () => setAnalysisOpen(false));
 analysisOverlay.addEventListener("click", (event) => {

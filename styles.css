@@ -1580,10 +1580,103 @@ textarea:focus {
 
 .search-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 170px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 0;
+}
+
+.filter-menu {
+  position: relative;
+}
+
+.filter-button {
+  display: inline-flex;
+  min-width: 122px;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #bcd0ff;
+  border-radius: 8px;
+  background: #eef4ff;
+  color: var(--primary-dark);
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.filter-button[aria-expanded="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.filter-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary-dark);
+  font-size: 0.72rem;
+  line-height: 1;
+  font-weight: 920;
+}
+
+.filters-panel {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  width: min(330px, calc(100vw - 48px));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 20px 58px rgba(15, 23, 42, 0.18);
+}
+
+.filters-panel[hidden] {
+  display: none;
+}
+
+.contact-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.check-filter {
+  position: relative;
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 840;
+  cursor: pointer;
+}
+
+.check-filter:has(input:checked) {
+  border-color: #1d4ed8;
+  background: #eef4ff;
+  color: #1d4ed8;
+}
+
+.check-filter input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .prospects-list {
@@ -1782,6 +1875,12 @@ textarea:focus {
   color: #166534;
 }
 
+.card-actions .unmark-returned-button {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
 .card-actions .whatsapp-button {
   background: #e9fbf0;
   border-color: #b7efc5;
@@ -1956,6 +2055,17 @@ textarea:focus {
 
   .calendar-grid {
     min-width: 640px;
+  }
+
+  .filter-menu,
+  .filter-button {
+    width: 100%;
+  }
+
+  .filters-panel {
+    right: auto;
+    left: 0;
+    width: 100%;
   }
 }
 
