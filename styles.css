@@ -197,6 +197,7 @@ body.is-dark-mode .period-card,
 body.is-dark-mode .calendar-panel,
 body.is-dark-mode .calendar-day,
 body.is-dark-mode .delete-store-panel,
+body.is-dark-mode .confirm-panel,
 body.is-dark-mode .panel,
 body.is-dark-mode .filters-panel,
 body.is-dark-mode .prospect-card {
@@ -404,6 +405,10 @@ body.is-store-context #adminSettingsOverlay {
   flex-wrap: wrap;
   gap: 10px;
   align-items: stretch;
+}
+
+.top-actions .top-action-icon {
+  display: none;
 }
 
 .account-switcher-label {
@@ -1096,7 +1101,8 @@ body.is-store-context #adminSettingsOverlay {
   background: linear-gradient(90deg, #2563eb, #16a34a);
 }
 
-.delete-store-panel {
+.delete-store-panel,
+.confirm-panel {
   display: grid;
   width: min(460px, 100%);
   gap: 14px;
@@ -1107,12 +1113,14 @@ body.is-store-context #adminSettingsOverlay {
   box-shadow: 0 26px 80px rgba(15, 23, 42, 0.28);
 }
 
-.delete-store-panel p {
+.delete-store-panel p,
+.confirm-panel p {
   color: var(--muted);
   line-height: 1.5;
 }
 
-.delete-store-actions {
+.delete-store-actions,
+.confirm-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
@@ -2569,7 +2577,8 @@ body.is-dark-mode .created-date-block {
 
   .analysis-panel,
   .admin-settings-panel,
-  .delete-store-panel {
+  .delete-store-panel,
+  .confirm-panel {
     width: 100%;
     max-height: calc(100dvh - 20px);
   }
@@ -2653,7 +2662,8 @@ body.is-dark-mode .created-date-block {
     width: 12px;
   }
 
-  .delete-store-actions {
+  .delete-store-actions,
+  .confirm-actions {
     grid-template-columns: 1fr;
   }
 
@@ -2710,5 +2720,480 @@ body.is-dark-mode .created-date-block {
 
   .auth-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    min-width: 0;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 2rem;
+    line-height: 1.05;
+  }
+
+  h2 {
+    font-size: 1.12rem;
+  }
+
+  .topbar-row,
+  .top-actions,
+  .admin-header,
+  .admin-settings-header,
+  .admin-store-header,
+  .analysis-header,
+  .calendar-header,
+  .panel-header {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topbar-row > div:first-child,
+  .admin-header > div:first-child,
+  .admin-settings-header > div:first-child,
+  .admin-store-header > div:first-child,
+  .analysis-header > div:first-child,
+  .calendar-header > div:first-child,
+  .panel-header > div:first-child {
+    min-width: 0;
+  }
+
+  .top-actions,
+  .analysis-actions,
+  .admin-store-actions {
+    width: 100%;
+  }
+
+  .top-actions > *,
+  .analysis-actions > *,
+  .admin-store-actions > *,
+  .admin-header .primary-button {
+    width: 100%;
+  }
+
+  .inline-theme-toggle,
+  .top-actions .inline-theme-toggle {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .today-counter {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .admin-view,
+  .form-panel {
+    padding: 14px;
+  }
+
+  .admin-settings-panel,
+  .analysis-panel,
+  .delete-store-panel {
+    padding: 14px;
+  }
+
+  .admin-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-overview-card,
+  .admin-store-metrics div,
+  .admin-comparison div,
+  .summary-item,
+  .period-grid div {
+    min-height: auto;
+  }
+
+  .admin-store-card {
+    padding: 14px 14px 14px 18px;
+  }
+
+  .admin-store-metrics,
+  .admin-comparison {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-comparison div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .admin-period-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-period-button {
+    width: 100%;
+  }
+
+  .admin-professional-performance-header {
+    display: grid;
+    gap: 4px;
+    align-items: start;
+  }
+
+  .admin-professional-row {
+    gap: 4px;
+  }
+
+  .admin-professional-row em {
+    justify-self: start;
+    min-width: 72px;
+  }
+
+  .store-settings-content,
+  .store-mini-manager,
+  .store-professional-row {
+    min-width: 0;
+  }
+
+  .store-settings-fields .secondary-button,
+  .store-manager-form .secondary-button,
+  .admin-password-grid .primary-button,
+  .admin-store-create-grid .primary-button {
+    width: 100%;
+  }
+
+  .list-panel {
+    overflow: visible;
+  }
+
+  .list-toolbar {
+    padding: 14px;
+  }
+
+  .prospects-list {
+    overflow: visible;
+    padding: 14px;
+  }
+
+  .empty-state {
+    min-height: 180px;
+    margin: 14px;
+  }
+
+  .card-main {
+    gap: 10px;
+  }
+
+  .card-badges {
+    justify-content: flex-start;
+    justify-items: start;
+  }
+
+  .card-tags {
+    justify-content: flex-start;
+  }
+
+  .card-bottom {
+    display: grid;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .card-actions a,
+  .card-actions button {
+    min-height: 40px;
+    white-space: normal;
+  }
+
+  .card-footer-meta {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .created-date-block {
+    max-width: 100%;
+  }
+
+  .calendar-panel {
+    overflow-x: visible;
+  }
+
+  .calendar-grid {
+    min-width: 0;
+  }
+
+  .calendar-controls {
+    width: 100%;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+  }
+
+  .calendar-controls strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    padding: 10px;
+  }
+
+  .auth-screen {
+    align-items: center;
+  }
+
+  .theme-toggle {
+    top: 10px;
+    right: 10px;
+  }
+
+  .auth-card {
+    width: 100%;
+  }
+
+  .admin-overview-grid,
+  .admin-store-metrics,
+  .admin-comparison,
+  .admin-period-controls,
+  .card-actions,
+  .contact-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-comparison div:last-child {
+    grid-column: auto;
+  }
+
+  .admin-view,
+  .form-panel,
+  .list-toolbar,
+  .prospects-list,
+  .analysis-panel,
+  .admin-settings-panel,
+  .delete-store-panel,
+  .confirm-panel {
+    padding: 12px;
+  }
+
+  .analysis-overlay {
+    padding: 8px;
+  }
+
+  .analysis-panel,
+  .admin-settings-panel,
+  .delete-store-panel,
+  .confirm-panel {
+    max-height: calc(100dvh - 16px);
+  }
+
+  .prospect-card {
+    padding: 12px 12px 12px 18px;
+  }
+
+  .card-name {
+    font-size: 1.12rem;
+    overflow-wrap: anywhere;
+  }
+
+  .meta-chip,
+  .tag-chip,
+  .return-badge,
+  .color-badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .card-professional {
+    width: 100%;
+    border-radius: 8px;
+  }
+
+  .card-professional strong {
+    white-space: normal;
+  }
+
+  .filters-panel {
+    position: fixed;
+    inset: auto 8px 8px;
+    width: auto;
+    max-height: min(74dvh, 520px);
+    overflow: auto;
+  }
+
+  .calendar-header {
+    gap: 12px;
+  }
+
+  .calendar-header p {
+    font-size: 0.82rem;
+  }
+
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .weekday-cell {
+    font-size: 0.62rem;
+  }
+
+  .calendar-day,
+  .calendar-empty {
+    min-height: 58px;
+    border-radius: 6px;
+  }
+
+  .calendar-day {
+    padding: 6px;
+  }
+
+  .calendar-day-number {
+    font-size: 0.92rem;
+  }
+
+  .calendar-day-count {
+    right: 4px;
+    bottom: 4px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0 6px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell {
+    padding: 8px;
+  }
+
+  h1 {
+    font-size: 1.72rem;
+  }
+
+  .auth-card h1 {
+    font-size: 1.72rem;
+  }
+
+  .status-option {
+    padding: 7px 8px;
+  }
+
+  .calendar-grid {
+    gap: 3px;
+  }
+
+  .calendar-day,
+  .calendar-empty {
+    min-height: 52px;
+  }
+
+  .calendar-day {
+    padding: 5px;
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    margin-bottom: 10px;
+  }
+
+  .topbar-row {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topbar-row > div:first-child {
+    display: none;
+  }
+
+  .top-actions {
+    width: auto;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .top-actions > *,
+  .top-actions .inline-theme-toggle,
+  .top-actions .secondary-button,
+  .top-actions .analysis-button,
+  .top-actions .today-counter {
+    flex: 0 0 auto;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0;
+  }
+
+  .top-actions .inline-theme-toggle,
+  .top-actions .secondary-button,
+  .top-actions .analysis-button {
+    position: relative;
+    inset: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .top-actions .analysis-button,
+  .top-actions .secondary-button {
+    overflow: hidden;
+    font-size: 0;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .top-actions .top-action-label {
+    display: none;
+  }
+
+  .top-actions .analysis-button::before,
+  #returnAdminBtn::before,
+  #logoutBtn::before {
+    content: none;
+  }
+
+  .top-actions .top-action-icon,
+  .top-actions .inline-theme-toggle i {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: block;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    color: currentColor;
+    font-size: 18px;
+    line-height: 18px;
+    text-align: center;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .top-actions .today-counter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .top-actions .today-counter span {
+    font-size: 1rem;
+  }
+
+  .top-actions .today-counter small {
+    display: none;
   }
 }

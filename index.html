@@ -69,10 +69,17 @@
               <small>Hoje</small>
             </div>
             <button id="analysisToggle" class="analysis-button" type="button" aria-expanded="false" aria-controls="analysisPanel">
-              Análise
+              <i class="fa-solid fa-chart-line top-action-icon" aria-hidden="true"></i>
+              <span class="top-action-label">Análise</span>
             </button>
-            <button id="returnAdminBtn" class="secondary-button" type="button" hidden>Voltar admin</button>
-            <button id="logoutBtn" class="secondary-button" type="button">Sair</button>
+            <button id="returnAdminBtn" class="secondary-button" type="button" hidden>
+              <i class="fa-solid fa-arrow-left top-action-icon" aria-hidden="true"></i>
+              <span class="top-action-label">Voltar admin</span>
+            </button>
+            <button id="logoutBtn" class="secondary-button" type="button">
+              <i class="fa-solid fa-power-off top-action-icon" aria-hidden="true"></i>
+              <span class="top-action-label">Sair</span>
+            </button>
           </div>
         </div>
 
@@ -450,6 +457,20 @@
         <div class="delete-store-actions">
           <button id="cancelDeleteStoreBtn" class="secondary-button" type="button">Cancelar</button>
           <button id="confirmDeleteStoreBtn" class="primary-button danger-button" type="button">Excluir definitivamente</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="logoutOverlay" class="analysis-overlay" hidden>
+      <section class="confirm-panel" aria-labelledby="logout-title">
+        <div>
+          <p class="eyebrow">Confirmação</p>
+          <h2 id="logout-title">Sair do Prospec?</h2>
+        </div>
+        <p>Você voltará para a tela de login.</p>
+        <div class="confirm-actions">
+          <button id="cancelLogoutBtn" class="secondary-button" type="button">Cancelar</button>
+          <button id="confirmLogoutBtn" class="primary-button danger-button" type="button">Sair</button>
         </div>
       </section>
     </div>

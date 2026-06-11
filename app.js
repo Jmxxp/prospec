@@ -83,6 +83,9 @@ const deleteStoreAdminPassword = document.querySelector("#deleteStoreAdminPasswo
 const deleteStoreMessage = document.querySelector("#deleteStoreMessage");
 const cancelDeleteStoreBtn = document.querySelector("#cancelDeleteStoreBtn");
 const confirmDeleteStoreBtn = document.querySelector("#confirmDeleteStoreBtn");
+const logoutOverlay = document.querySelector("#logoutOverlay");
+const cancelLogoutBtn = document.querySelector("#cancelLogoutBtn");
+const confirmLogoutBtn = document.querySelector("#confirmLogoutBtn");
 const form = document.querySelector("#prospectForm");
 const editingIdInput = document.querySelector("#editingId");
 const nameInput = document.querySelector("#nameInput");
@@ -498,7 +501,7 @@ function applyTheme(theme) {
   themeToggleButtons.forEach((button) => {
     button.setAttribute("aria-label", isDark ? "Ativar modo claro" : "Ativar modo escuro");
     button.title = isDark ? "Ativar modo claro" : "Ativar modo escuro";
-    button.innerHTML = `<i class="fa-solid ${isDark ? "fa-sun" : "fa-moon"}" aria-hidden="true"></i>`;
+    button.innerHTML = `<i class="fa-solid ${isDark ? "fa-sun" : "fa-moon"} top-action-icon" aria-hidden="true"></i>`;
   });
 }
 
@@ -587,7 +590,16 @@ function setTopForContext() {
 }
 
 function syncModalScrollLock() {
-  document.body.classList.toggle("is-modal-open", !analysisOverlay.hidden || !adminSettingsOverlay.hidden || !deleteStoreOverlay.hidden);
+  document.body.classList.toggle(
+    "is-modal-open",
+    !analysisOverlay.hidden || !adminSettingsOverlay.hidden || !deleteStoreOverlay.hidden || !logoutOverlay.hidden
+  );
+}
+
+function setLogoutConfirmOpen(isOpen) {
+  logoutOverlay.hidden = !isOpen;
+  syncModalScrollLock();
+  if (isOpen) cancelLogoutBtn.focus();
 }
 
 function setAdminSettingsOpen(isOpen) {
@@ -1632,6 +1644,7 @@ async function submitAuth(event) {
 }
 
 async function logout() {
+  setLogoutConfirmOpen(false);
   stopRealtimeSubscription();
   if (currentContext?.type === "store") {
     await supabaseClient.rpc("store_logout", { p_token: currentContext.token });
@@ -2104,7 +2117,12 @@ adminPasswordToggleBtn.addEventListener("click", () => togglePasswordGroup([admi
 authForm.addEventListener("submit", submitAuth);
 authLoginModeBtn.addEventListener("click", () => setAuthMode("login"));
 authSignupModeBtn.addEventListener("click", () => setAuthMode("signup"));
-logoutBtn.addEventListener("click", logout);
+logoutBtn.addEventListener("click", () => setLogoutConfirmOpen(true));
+cancelLogoutBtn.addEventListener("click", () => setLogoutConfirmOpen(false));
+confirmLogoutBtn.addEventListener("click", logout);
+logoutOverlay.addEventListener("click", (event) => {
+  if (event.target === logoutOverlay) setLogoutConfirmOpen(false);
+});
 returnAdminBtn.addEventListener("click", returnToAdmin);
 adminSettingsBtn.addEventListener("click", () => setAdminSettingsOpen(true));
 adminSettingsClose.addEventListener("click", () => setAdminSettingsOpen(false));
