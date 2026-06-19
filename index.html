@@ -236,6 +236,10 @@
                 <span id="returnedProspects">0</span>
                 <small>Voltaram</small>
               </div>
+              <div class="summary-item summary-purchase">
+                <span id="purchasedProspects">0</span>
+                <small>Compraram</small>
+              </div>
               <div class="summary-item">
                 <span id="todayProspects">0</span>
                 <small>Hoje</small>
@@ -274,6 +278,24 @@
                   </div>
                   <div>
                     <span id="yearReturns">0</span>
+                    <small>Ano</small>
+                  </div>
+                </div>
+              </section>
+
+              <section class="period-card purchase-period-card" aria-labelledby="purchased-title">
+                <h3 id="purchased-title">Clientes que compraram</h3>
+                <div class="period-grid">
+                  <div>
+                    <span id="weekPurchases">0</span>
+                    <small>Semana</small>
+                  </div>
+                  <div>
+                    <span id="monthPurchases">0</span>
+                    <small>Mês</small>
+                  </div>
+                  <div>
+                    <span id="yearPurchases">0</span>
                     <small>Ano</small>
                   </div>
                 </div>
@@ -430,6 +452,8 @@
                       <option value="all">Todos</option>
                       <option value="not-returned">Não voltaram</option>
                       <option value="returned">Voltaram</option>
+                      <option value="purchased">Compraram</option>
+                      <option value="not-purchased">Não compraram</option>
                       <option value="red" data-color-filter-option="red">Improvável</option>
                       <option value="yellow" data-color-filter-option="yellow">Pouco provável</option>
                       <option value="blue" data-color-filter-option="blue">Provável</option>
@@ -517,12 +541,15 @@
             <a class="whatsapp-button" target="_blank" rel="noreferrer">Chamar no WhatsApp</a>
             <button class="mark-returned-button" type="button">Registrar volta</button>
             <button class="unmark-returned-button" type="button">Tirar volta</button>
+            <button class="mark-purchased-button" type="button">Registrar compra</button>
+            <button class="unmark-purchased-button" type="button">Tirar compra</button>
             <button class="edit-button" type="button">Editar</button>
             <button class="delete-button" type="button">Excluir</button>
           </div>
           <div class="card-footer-meta">
             <div class="created-date-block"><strong>Registrado</strong> <em class="created-date"></em></div>
             <span class="return-badge"></span>
+            <span class="purchase-badge"></span>
           </div>
         </div>
       </article>

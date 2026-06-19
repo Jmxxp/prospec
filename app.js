@@ -123,6 +123,7 @@ const analysisClose = document.querySelector("#analysisClose");
 const dailyGoalInput = document.querySelector("#dailyGoalInput");
 const totalProspects = document.querySelector("#totalProspects");
 const returnedProspects = document.querySelector("#returnedProspects");
+const purchasedProspects = document.querySelector("#purchasedProspects");
 const todayProspects = document.querySelector("#todayProspects");
 const topTodayProspects = document.querySelector("#topTodayProspects");
 const weekProspects = document.querySelector("#weekProspects");
@@ -131,6 +132,9 @@ const yearProspects = document.querySelector("#yearProspects");
 const weekReturns = document.querySelector("#weekReturns");
 const monthReturns = document.querySelector("#monthReturns");
 const yearReturns = document.querySelector("#yearReturns");
+const weekPurchases = document.querySelector("#weekPurchases");
+const monthPurchases = document.querySelector("#monthPurchases");
+const yearPurchases = document.querySelector("#yearPurchases");
 const analysisProfessionalPerformance = document.querySelector("#analysisProfessionalPerformance");
 const prevMonthBtn = document.querySelector("#prevMonthBtn");
 const nextMonthBtn = document.querySelector("#nextMonthBtn");
@@ -236,6 +240,12 @@ function startOfDay(date) {
 function addDays(date, amount) {
   const copy = new Date(date);
   copy.setDate(copy.getDate() + amount);
+  return copy;
+}
+
+function addHours(date, amount) {
+  const copy = new Date(date);
+  copy.setHours(copy.getHours() + amount);
   return copy;
 }
 
@@ -352,6 +362,16 @@ function getStoreGoal(store) {
   return Number(store?.dailyGoal) > 0 ? Number(store.dailyGoal) : 15;
 }
 
+function getPurchasedAt(row) {
+  if (!row) return null;
+  if (row.purchased_at || row.purchasedAt) return row.purchased_at || row.purchasedAt;
+  if (row.bought_at || row.boughtAt) return row.bought_at || row.boughtAt;
+  if (row.purchase_at || row.purchaseAt) return row.purchase_at || row.purchaseAt;
+  if (row.sold_at || row.soldAt) return row.sold_at || row.soldAt;
+  if (row.purchased === true || row.bought === true) return row.returned_at || row.returnedAt || row.updated_at || row.updatedAt || row.created_at || row.createdAt || null;
+  return null;
+}
+
 function getSelectedColor() {
   return new FormData(form).get("color") || "blue";
 }
@@ -415,6 +435,13 @@ function getSupabaseErrorMessage(error) {
     error.message?.includes("professional_id")
   ) {
     return "Atualize o banco no Supabase: rode o arquivo supabase_profissionais_prospeccao.sql no SQL Editor.";
+  }
+  if (
+    error.message?.includes("store_mark_purchased") ||
+    error.message?.includes("store_unmark_purchased") ||
+    error.message?.includes("purchased_at")
+  ) {
+    return "Atualize o banco no Supabase: rode o arquivo supabase_compras_prospeccao.sql no SQL Editor.";
   }
   return error.message || "Algo deu errado. Tente novamente.";
 }
@@ -640,6 +667,7 @@ function buildSearchText(prospect) {
     getColorLabel(prospect.color),
     formatDateTime(prospect.createdAt),
     formatDateTime(prospect.returnedAt),
+    formatDateTime(prospect.purchasedAt),
   ].join(" "));
 }
 
@@ -705,6 +733,8 @@ function getFilteredProspects() {
       if (periodWindow.start && !isBetween(prospect.createdAt, periodWindow.start, periodWindow.end)) return false;
       if (filter === "returned" && !prospect.returnedAt) return false;
       if (filter === "not-returned" && prospect.returnedAt) return false;
+      if (filter === "purchased" && !prospect.purchasedAt) return false;
+      if (filter === "not-purchased" && prospect.purchasedAt) return false;
       if (["blue", "green", "yellow", "red"].includes(filter) && prospect.color !== filter) return false;
       if (hasPhoneFilter.checked && !onlyDigits(prospect.phone)) return false;
       if (hasCpfFilter.checked && !onlyDigits(prospect.cpf)) return false;
@@ -723,29 +753,43 @@ function getPeriodBuckets(period) {
   const now = new Date();
   if (period === "daily") {
     const today = startOfDay(now);
-    return Array.from({ length: 7 }, (_, index) => {
-      const start = addDays(today, index - 6);
-      return { label: new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit" }).format(start).replace(".", ""), start, end: addDays(start, 1) };
+    return Array.from({ length: now.getHours() + 1 }, (_, index) => {
+      const start = addHours(today, index);
+      return { label: `${String(index).padStart(2, "0")}h`, start, end: addHours(start, 1), isToday: index === now.getHours() };
     });
   }
   if (period === "weekly") {
     const week = startOfWeek(now);
-    return Array.from({ length: 8 }, (_, index) => {
-      const start = addDays(week, (index - 7) * 7);
-      return { label: `${start.getDate()}/${start.getMonth() + 1}`, start, end: addDays(start, 7) };
+    const dayCount = Math.floor((startOfDay(now) - week) / 86400000) + 1;
+    return Array.from({ length: dayCount }, (_, index) => {
+      const start = addDays(week, index);
+      return {
+        label: new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit" }).format(start).replace(".", ""),
+        start,
+        end: addDays(start, 1),
+        isToday: isSameDay(start, now),
+        isWeekend: start.getDay() === 0 || start.getDay() === 6,
+      };
     });
   }
   if (period === "yearly") {
     const year = startOfYear(now);
-    return Array.from({ length: 4 }, (_, index) => {
-      const start = addYears(year, index - 3);
-      return { label: String(start.getFullYear()), start, end: addYears(start, 1) };
+    return Array.from({ length: now.getMonth() + 1 }, (_, index) => {
+      const start = addMonths(year, index);
+      return { label: new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(start).replace(".", ""), start, end: addMonths(start, 1), isToday: start.getMonth() === now.getMonth() };
     });
   }
   const month = startOfMonth(now);
-  return Array.from({ length: 12 }, (_, index) => {
-    const start = addMonths(month, index - 11);
-    return { label: new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(start).replace(".", ""), start, end: addMonths(start, 1) };
+  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, index) => {
+    const start = addDays(month, index);
+    return {
+      label: String(index + 1),
+      start,
+      end: addDays(start, 1),
+      isToday: isSameDay(start, now),
+      isWeekend: start.getDay() === 0 || start.getDay() === 6,
+    };
   });
 }
 
@@ -757,9 +801,14 @@ function getPeriodWindow(period) {
   return { start: startOfMonth(now), end: addMonths(startOfMonth(now), 1), label: "mês" };
 }
 
-function createAdminMetric(label, prospectsCount, returnsCount) {
+function createAdminMetric(label, prospectsCount, returnsCount, purchasesCount = 0) {
   const metric = document.createElement("div");
-  metric.innerHTML = `<strong>${prospectsCount}</strong><span>${label}</span><em>${returnsCount} voltaram</em>`;
+  metric.innerHTML = `
+    <strong>${prospectsCount}</strong>
+    <span>${label}</span>
+    <em>${returnsCount} viram a loja</em>
+    <em class="admin-purchase-count">${purchasesCount} compraram</em>
+  `;
   return metric;
 }
 
@@ -784,29 +833,156 @@ function createAdminTagChip(storeId, tag, row) {
   return chip;
 }
 
-function createTrendChart(storeProspects, period) {
+function createTrendChart(storeProspects, period, goal = 0) {
   const chart = document.createElement("div");
-  const buckets = getPeriodBuckets(period).map((bucket) => ({
+  const periodBuckets = getPeriodBuckets(period).map((bucket) => ({
     ...bucket,
     prospectsCount: storeProspects.filter((prospect) => isBetween(prospect.createdAt, bucket.start, bucket.end)).length,
     returnsCount: storeProspects.filter((prospect) => isBetween(prospect.returnedAt, bucket.start, bucket.end)).length,
+    purchasesCount: storeProspects.filter((prospect) => isBetween(prospect.purchasedAt, bucket.start, bucket.end)).length,
   }));
-  const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.prospectsCount));
-  chart.className = "admin-trend-chart";
-  buckets.forEach((bucket) => {
-    const item = document.createElement("div");
-    const height = Math.max((bucket.prospectsCount / maxValue) * 100, bucket.prospectsCount > 0 ? 8 : 0);
-    const returnsHeight = Math.max((bucket.returnsCount / maxValue) * 100, bucket.returnsCount > 0 ? 7 : 0);
-    item.className = "admin-trend-item";
-    item.innerHTML = `
-      <div class="admin-trend-bar">
-        <i style="height:${height}%" title="${bucket.prospectsCount} prospecções"></i>
-        <b style="height:${returnsHeight}%" title="${bucket.returnsCount} voltaram"></b>
-      </div>
-      <span>${bucket.label}</span>
-    `;
-    chart.append(item);
+  const firstActiveBucket = periodBuckets.findIndex((bucket) => bucket.prospectsCount || bucket.returnsCount || bucket.purchasesCount);
+  const buckets = period === "monthly" ? periodBuckets : firstActiveBucket > 0 ? periodBuckets.slice(firstActiveBucket) : periodBuckets;
+  const goalValue = ["weekly", "monthly"].includes(period) && Number(goal) > 0 ? Number(goal) : 0;
+  const periodLabels = {
+    daily: "por hora do dia",
+    weekly: "por dia da semana",
+    monthly: "todos os dias do mês",
+    yearly: "por mês do ano",
+  };
+  const series = [
+    { key: "prospectsCount", label: "Prospecções", color: "#2563eb" },
+    { key: "returnsCount", label: "Viram a loja", color: "#16a34a" },
+    { key: "purchasesCount", label: "Compraram", color: "#f59e0b" },
+  ].map((item) => {
+    const values = buckets.map((bucket) => bucket[item.key]);
+    return {
+      ...item,
+      values,
+      total: values.reduce((sum, value) => sum + value, 0),
+      max: Math.max(0, ...values),
+      last: values[values.length - 1] || 0,
+      hasData: values.some((value) => value > 0),
+    };
   });
+  const dataMaxValue = Math.max(0, ...series.flatMap((item) => item.values));
+  const rawMaxValue = Math.max(goalValue, dataMaxValue);
+  const getStepSize = (value) => {
+    if (value <= 5) return 1;
+    const rough = value / 5;
+    const magnitude = 10 ** Math.floor(Math.log10(rough));
+    const normalized = rough / magnitude;
+    const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+    return nice * magnitude;
+  };
+  const stepSize = getStepSize(rawMaxValue);
+  const maxValue = Math.max(stepSize, Math.ceil(rawMaxValue / stepSize) * stepSize);
+  const tickValues = Array.from(new Set([
+    ...Array.from({ length: Math.floor(maxValue / stepSize) + 1 }, (_, index) => index * stepSize),
+    goalValue,
+  ].filter((value) => value >= 0 && value <= maxValue))).sort((first, second) => first - second);
+  const width = 680;
+  const height = 270;
+  const padding = { top: 28, right: 28, bottom: 66, left: 44 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const step = buckets.length > 1 ? plotWidth / (buckets.length - 1) : 0;
+  const yForValue = (value) => padding.top + plotHeight - (value / maxValue) * plotHeight;
+  const xForIndex = (index) => padding.left + step * index;
+  const pointFor = (bucket, index, key) => `${xForIndex(index).toFixed(1)},${yForValue(bucket[key]).toFixed(1)}`;
+  const zeroY = yForValue(0).toFixed(1);
+  const gridLines = tickValues
+    .map((value) => {
+      const y = yForValue(value).toFixed(1);
+      return `<g class="admin-line-grid ${value === 0 ? "is-zero" : ""}"><line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}"></line><text x="10" y="${Number(y) + 4}">${value}</text></g>`;
+    })
+    .join("");
+  const labelEvery = period === "monthly" ? 1 : buckets.length > 20 ? 4 : buckets.length > 14 ? 2 : 1;
+  const backgroundBands = buckets
+    .map((bucket, index) => {
+      if (!bucket.isWeekend) return "";
+      const halfStep = step ? step / 2 : plotWidth / 2;
+      const x = Math.max(padding.left, xForIndex(index) - halfStep).toFixed(1);
+      const nextX = Math.min(width - padding.right, xForIndex(index) + halfStep).toFixed(1);
+      return `<rect class="admin-line-band" x="${x}" y="${padding.top}" width="${Math.max(0, Number(nextX) - Number(x)).toFixed(1)}" height="${plotHeight}"></rect>`;
+    })
+    .join("");
+  const verticalLines = buckets
+    .map((bucket, index) => {
+      const isVisibleLabel = index === 0 || index === buckets.length - 1 || index % labelEvery === 0;
+      const x = xForIndex(index).toFixed(1);
+      return `<line class="admin-line-vertical ${isVisibleLabel ? "is-major" : ""}" x1="${x}" y1="${padding.top}" x2="${x}" y2="${padding.top + plotHeight}"></line>`;
+    })
+    .join("");
+  const xTicks = buckets
+    .map((bucket, index) => {
+      const x = xForIndex(index).toFixed(1);
+      return `<line class="admin-line-x-tick ${bucket.isToday ? "is-today" : ""}" x1="${x}" y1="${padding.top + plotHeight}" x2="${x}" y2="${padding.top + plotHeight + (bucket.isToday ? 8 : 5)}"></line>`;
+    })
+    .join("");
+  const goalY = goalValue ? yForValue(goalValue).toFixed(1) : "";
+  const goalLine = goalValue
+    ? `<g class="admin-goal-line"><line x1="${padding.left}" y1="${goalY}" x2="${width - padding.right}" y2="${goalY}"></line><text x="${width - padding.right - 6}" y="${Number(goalY) - 7}">Meta ${goalValue}/dia</text></g>`
+    : "";
+  const paths = series
+    .filter((item) => item.hasData)
+    .map((item) => {
+      const points = buckets.map((bucket, index) => pointFor(bucket, index, item.key)).join(" ");
+      const areaPoints = `${points} ${xForIndex(buckets.length - 1).toFixed(1)},${zeroY} ${xForIndex(0).toFixed(1)},${zeroY}`;
+      const dots = buckets
+        .map((bucket, index) => {
+          const [x, y] = pointFor(bucket, index, item.key).split(",");
+          const value = bucket[item.key];
+          const radius = value > 0 ? 3.5 : 1.7;
+          const label = value > 0
+            ? `<text class="admin-line-value" x="${x}" y="${Math.max(14, Number(y) - 9).toFixed(1)}">${value}</text>`
+            : "";
+          return `<circle class="${value > 0 ? "" : "is-zero"}" cx="${x}" cy="${y}" r="${radius}"><title>${item.label}: ${value} em ${bucket.label}</title></circle>${label}`;
+        })
+        .join("");
+      return `<g class="admin-line-series" style="--series-color:${item.color}"><polygon class="admin-line-area" points="${areaPoints}"></polygon><polyline points="${points}"></polyline>${dots}</g>`;
+    })
+    .join("");
+  const labels = buckets
+    .map((bucket, index) => {
+      if (index !== 0 && index !== buckets.length - 1 && index % labelEvery !== 0) return "";
+      return `<text class="admin-line-label ${bucket.isToday ? "is-today" : ""} ${bucket.isWeekend ? "is-weekend" : ""}" x="${xForIndex(index)}" y="${height - 20}">${bucket.label}</text>`;
+    })
+    .join("");
+  const legend = series
+    .map((item) => `
+      <span class="${item.hasData ? "" : "is-empty"}" style="--series-color:${item.color}">
+        <i></i>
+        <b>${item.label}</b>
+        <small>Total ${item.total} | pico ${item.max} | atual ${item.last}</small>
+      </span>
+    `)
+    .join("");
+  const totalProspects = series.find((item) => item.key === "prospectsCount")?.total || 0;
+  const activeBuckets = buckets.filter((bucket) => bucket.prospectsCount || bucket.returnsCount || bucket.purchasesCount).length;
+  const goalHits = goalValue ? buckets.filter((bucket) => bucket.prospectsCount >= goalValue).length : 0;
+  const caption = `${periodLabels[period] || "por período"} | ${buckets.length} blocos | ${activeBuckets} com movimento${goalValue ? ` | meta batida em ${goalHits}` : ""}`;
+  const emptyMessage = dataMaxValue === 0 ? `<text class="admin-line-empty" x="${width / 2}" y="${padding.top + plotHeight / 2}">Sem movimento no período</text>` : "";
+  chart.className = `admin-trend-chart is-${period}`;
+  chart.innerHTML = `
+    <div class="admin-trend-heading">
+      <div class="admin-trend-title">
+        <strong>Fluxo do período</strong>
+        <span>${caption}</span>
+      </div>
+      <div class="admin-trend-legend">${legend}</div>
+    </div>
+    <svg class="admin-line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Gráfico ${caption}. Total de prospecções: ${totalProspects}.">
+      ${backgroundBands}
+      ${verticalLines}
+      ${gridLines}
+      ${goalLine}
+      ${paths}
+      ${emptyMessage}
+      ${xTicks}
+      <g>${labels}</g>
+    </svg>
+  `;
   return chart;
 }
 
@@ -829,7 +1005,7 @@ function createProfessionalPerformance(store, periodProspects) {
   panel.innerHTML = `
     <div class="admin-professional-performance-header">
       <h4>Desempenho por profissional</h4>
-      <span>Feitas, voltaram e conversão</span>
+      <span>Feitas, viram, compraram e compra</span>
     </div>
     <div class="admin-professional-list"></div>
   `;
@@ -842,6 +1018,7 @@ function createProfessionalPerformance(store, periodProspects) {
       name: professional.name,
       made: 0,
       returned: 0,
+      purchased: 0,
       isActive: professional.isActive,
     });
   });
@@ -857,17 +1034,19 @@ function createProfessionalPerformance(store, periodProspects) {
         name: matchingProfessional?.name || prospect.professionalName || "Sem profissional",
         made: 0,
         returned: 0,
+        purchased: 0,
         isActive: true,
       });
     }
     const stats = statsByKey.get(key);
     stats.made += 1;
     if (prospect.returnedAt) stats.returned += 1;
+    if (prospect.purchasedAt) stats.purchased += 1;
   });
 
   const rows = Array.from(statsByKey.values())
     .filter((stats) => stats.made > 0 || stats.isActive)
-    .sort((first, second) => second.made - first.made || second.returned - first.returned || first.name.localeCompare(second.name, "pt-BR"));
+    .sort((first, second) => second.made - first.made || second.returned - first.returned || second.purchased - first.purchased || first.name.localeCompare(second.name, "pt-BR"));
 
   if (!rows.length) {
     const empty = document.createElement("p");
@@ -878,13 +1057,14 @@ function createProfessionalPerformance(store, periodProspects) {
   }
 
   rows.forEach((stats) => {
-    const conversion = stats.made ? Math.round((stats.returned / stats.made) * 100) : 0;
+    const conversion = stats.made ? Math.round((stats.purchased / stats.made) * 100) : 0;
     const row = document.createElement("div");
     row.className = "admin-professional-row";
     row.innerHTML = `
       <strong>${escapeHtml(stats.name)}</strong>
       <span><b>${stats.made}</b> feitas</span>
-      <span><b>${stats.returned}</b> voltaram</span>
+      <span><b>${stats.returned}</b> viram</span>
+      <span><b>${stats.purchased}</b> compraram</span>
       <em>${conversion}%</em>
     `;
     list.append(row);
@@ -1013,6 +1193,7 @@ function renderSummary() {
   dailyGoalInput.disabled = true;
   totalProspects.textContent = analysisProspects.length;
   returnedProspects.textContent = analysisProspects.filter((prospect) => prospect.returnedAt).length;
+  purchasedProspects.textContent = analysisProspects.filter((prospect) => prospect.purchasedAt).length;
   todayProspects.textContent = todayCount;
   if (currentContext?.type === "store") {
     topTodayProspects.textContent = todayCount;
@@ -1026,6 +1207,9 @@ function renderSummary() {
   weekReturns.textContent = analysisProspects.filter((prospect) => isInCurrentWeek(prospect.returnedAt)).length;
   monthReturns.textContent = analysisProspects.filter((prospect) => isInCurrentMonth(prospect.returnedAt)).length;
   yearReturns.textContent = analysisProspects.filter((prospect) => isInCurrentYear(prospect.returnedAt)).length;
+  weekPurchases.textContent = analysisProspects.filter((prospect) => isInCurrentWeek(prospect.purchasedAt)).length;
+  monthPurchases.textContent = analysisProspects.filter((prospect) => isInCurrentMonth(prospect.purchasedAt)).length;
+  yearPurchases.textContent = analysisProspects.filter((prospect) => isInCurrentYear(prospect.purchasedAt)).length;
 }
 
 function renderAnalysisProfessionalPerformance() {
@@ -1040,22 +1224,25 @@ function renderAdminDashboard() {
   const totals = {
     dailyProspects: countByPeriod(prospects, "createdAt", "daily"),
     dailyReturns: countByPeriod(prospects, "returnedAt", "daily"),
+    dailyPurchases: countByPeriod(prospects, "purchasedAt", "daily"),
     weeklyProspects: countByPeriod(prospects, "createdAt", "weekly"),
     weeklyReturns: countByPeriod(prospects, "returnedAt", "weekly"),
+    weeklyPurchases: countByPeriod(prospects, "purchasedAt", "weekly"),
     monthlyProspects: countByPeriod(prospects, "createdAt", "monthly"),
     monthlyReturns: countByPeriod(prospects, "returnedAt", "monthly"),
+    monthlyPurchases: countByPeriod(prospects, "purchasedAt", "monthly"),
     yearlyProspects: countByPeriod(prospects, "createdAt", "yearly"),
     yearlyReturns: countByPeriod(prospects, "returnedAt", "yearly"),
+    yearlyPurchases: countByPeriod(prospects, "purchasedAt", "yearly"),
   };
-  const maxMonth = Math.max(1, ...stores.map((store) => countByPeriod(prospects.filter((p) => p.storeId === store.id), "createdAt", "monthly")));
   adminDailyProspects.textContent = totals.dailyProspects;
-  adminDailyReturns.textContent = `${totals.dailyReturns} voltaram`;
+  adminDailyReturns.textContent = `${totals.dailyReturns} viram / ${totals.dailyPurchases} compraram`;
   adminWeeklyProspects.textContent = totals.weeklyProspects;
-  adminWeeklyReturns.textContent = `${totals.weeklyReturns} voltaram`;
+  adminWeeklyReturns.textContent = `${totals.weeklyReturns} viram / ${totals.weeklyPurchases} compraram`;
   adminMonthlyProspects.textContent = totals.monthlyProspects;
-  adminMonthlyReturns.textContent = `${totals.monthlyReturns} voltaram`;
+  adminMonthlyReturns.textContent = `${totals.monthlyReturns} viram / ${totals.monthlyPurchases} compraram`;
   adminYearlyProspects.textContent = totals.yearlyProspects;
-  adminYearlyReturns.textContent = `${totals.yearlyReturns} voltaram`;
+  adminYearlyReturns.textContent = `${totals.yearlyReturns} viram / ${totals.yearlyPurchases} compraram`;
   adminStoreGrid.innerHTML = "";
   adminStoreSettingsList.innerHTML = "";
   passwordAccountSelect.innerHTML = "";
@@ -1072,11 +1259,14 @@ function renderAdminDashboard() {
     const periodWindow = getPeriodWindow(selectedPeriod);
     const periodProspects = storeProspects.filter((prospect) => isBetween(prospect.createdAt, periodWindow.start, periodWindow.end));
     const periodReturns = storeProspects.filter((prospect) => isBetween(prospect.returnedAt, periodWindow.start, periodWindow.end));
-    const conversion = periodProspects.length > 0 ? Math.round((periodReturns.length / periodProspects.length) * 100) : 0;
+    const periodPurchases = storeProspects.filter((prospect) => isBetween(prospect.purchasedAt, periodWindow.start, periodWindow.end));
+    const purchaseConversion = periodProspects.length > 0 ? Math.round((periodPurchases.length / periodProspects.length) * 100) : 0;
     const dailyProspects = countByPeriod(storeProspects, "createdAt", "daily");
     const dailyReturns = countByPeriod(storeProspects, "returnedAt", "daily");
+    const dailyPurchases = countByPeriod(storeProspects, "purchasedAt", "daily");
     const monthlyProspects = countByPeriod(storeProspects, "createdAt", "monthly");
     const monthlyReturns = countByPeriod(storeProspects, "returnedAt", "monthly");
+    const monthlyPurchases = countByPeriod(storeProspects, "purchasedAt", "monthly");
     const goalStyle = getGoalStyle(dailyProspects, storeGoal);
     const card = document.createElement("article");
     card.className = "admin-store-card";
@@ -1101,17 +1291,18 @@ function renderAdminDashboard() {
       <div class="admin-period-controls"></div>
       <div class="admin-comparison">
         <div><strong>${periodProspects.length}</strong><span>Prospecções neste ${periodWindow.label}</span></div>
-        <div><strong>${periodReturns.length}</strong><span>Voltaram neste ${periodWindow.label}</span></div>
-        <div><strong>${conversion}%</strong><span>Conversão deste ${periodWindow.label}</span></div>
+        <div><strong>${periodReturns.length}</strong><span>Viram a loja neste ${periodWindow.label}</span></div>
+        <div><strong>${periodPurchases.length}</strong><span>Compraram neste ${periodWindow.label}</span></div>
+        <div><strong>${purchaseConversion}%</strong><span>Compra sobre prospecções</span></div>
       </div>
       <div class="admin-professional-performance-slot"></div>
       <div class="admin-store-chart"></div>
     `;
     card.querySelector(".admin-store-metrics").append(
-      createAdminMetric("Hoje", dailyProspects, dailyReturns),
-      createAdminMetric("Semana", countByPeriod(storeProspects, "createdAt", "weekly"), countByPeriod(storeProspects, "returnedAt", "weekly")),
-      createAdminMetric("Mês", monthlyProspects, monthlyReturns),
-      createAdminMetric("Ano", countByPeriod(storeProspects, "createdAt", "yearly"), countByPeriod(storeProspects, "returnedAt", "yearly"))
+      createAdminMetric("Hoje", dailyProspects, dailyReturns, dailyPurchases),
+      createAdminMetric("Semana", countByPeriod(storeProspects, "createdAt", "weekly"), countByPeriod(storeProspects, "returnedAt", "weekly"), countByPeriod(storeProspects, "purchasedAt", "weekly")),
+      createAdminMetric("Mês", monthlyProspects, monthlyReturns, monthlyPurchases),
+      createAdminMetric("Ano", countByPeriod(storeProspects, "createdAt", "yearly"), countByPeriod(storeProspects, "returnedAt", "yearly"), countByPeriod(storeProspects, "purchasedAt", "yearly"))
     );
     card.querySelector(".admin-period-controls").append(
       createPeriodButton(store, "daily", "Dia", selectedPeriod),
@@ -1121,9 +1312,7 @@ function renderAdminDashboard() {
     );
     card.querySelector(".admin-professional-performance-slot").append(createProfessionalPerformance(store, periodProspects));
     card.querySelector(".admin-store-chart").append(
-      createAdminBar("Mês", monthlyProspects, maxMonth),
-      createAdminBar("Conversão mês", monthlyProspects ? Math.round((monthlyReturns / monthlyProspects) * 100) : 0, 100),
-      createTrendChart(storeProspects, selectedPeriod)
+      createTrendChart(storeProspects, selectedPeriod, storeGoal)
     );
     card.querySelector(".admin-store-analysis").addEventListener("click", (event) => {
       event.stopPropagation();
@@ -1167,12 +1356,13 @@ function renderCalendar() {
     const date = new Date(year, month, day);
     const count = analysisProspects.filter((prospect) => isSameDay(prospect.createdAt, date)).length;
     const returnedCount = analysisProspects.filter((prospect) => isSameDay(prospect.returnedAt, date)).length;
+    const purchasedCount = analysisProspects.filter((prospect) => isSameDay(prospect.purchasedAt, date)).length;
     const goalStyle = getGoalStyle(count, analysisGoal);
     const dayCell = document.createElement("div");
     dayCell.className = "calendar-day";
     dayCell.style.background = goalStyle.background;
     dayCell.style.color = goalStyle.color;
-    dayCell.title = `${count} prospecções feitas, ${returnedCount} voltaram`;
+    dayCell.title = `${count} prospecções feitas, ${returnedCount} viram a loja, ${purchasedCount} compraram`;
     dayCell.classList.toggle("is-today", isToday(date));
     dayCell.classList.toggle("is-over-goal", goalStyle.isOverGoal);
     dayCell.innerHTML = `<span class="calendar-day-number">${day}</span><strong class="calendar-day-count">${count}</strong>`;
@@ -1238,9 +1428,12 @@ function renderProspects() {
     const card = template.content.firstElementChild.cloneNode(true);
     const meta = card.querySelector(".card-meta");
     const badge = card.querySelector(".return-badge");
+    const purchaseBadge = card.querySelector(".purchase-badge");
     const colorBadge = card.querySelector(".color-badge");
     const returnButton = card.querySelector(".mark-returned-button");
     const unmarkReturnButton = card.querySelector(".unmark-returned-button");
+    const purchaseButton = card.querySelector(".mark-purchased-button");
+    const unmarkPurchaseButton = card.querySelector(".unmark-purchased-button");
     const whatsappButton = card.querySelector(".whatsapp-button");
     const notes = card.querySelector(".card-notes");
     const tags = card.querySelector(".card-tags");
@@ -1277,12 +1470,23 @@ function renderProspects() {
     } else {
       badge.textContent = "Não voltou";
     }
-    returnButton.hidden = Boolean(prospect.returnedAt);
-    unmarkReturnButton.hidden = !prospect.returnedAt;
+    returnButton.hidden = Boolean(prospect.returnedAt || prospect.purchasedAt);
+    unmarkReturnButton.hidden = !prospect.returnedAt || Boolean(prospect.purchasedAt);
+    if (prospect.purchasedAt) {
+      purchaseBadge.innerHTML = `<i class="fa-solid fa-bag-shopping" aria-hidden="true"></i><span>Comprou</span>`;
+      purchaseBadge.title = formatDateTime(prospect.purchasedAt);
+      purchaseBadge.classList.add("is-purchased");
+    } else {
+      purchaseBadge.hidden = true;
+    }
+    purchaseButton.hidden = Boolean(prospect.purchasedAt);
+    unmarkPurchaseButton.hidden = !prospect.purchasedAt;
     whatsappButton.href = digits.length >= 10 ? `https://wa.me/55${digits}` : "";
     whatsappButton.classList.toggle("is-hidden", digits.length < 10);
     returnButton.addEventListener("click", () => markReturned(prospect.id));
     unmarkReturnButton.addEventListener("click", () => unmarkReturned(prospect.id));
+    purchaseButton.addEventListener("click", () => markPurchased(prospect.id));
+    unmarkPurchaseButton.addEventListener("click", () => unmarkPurchased(prospect.id));
     card.querySelector(".edit-button").addEventListener("click", () => editProspect(prospect.id));
     card.querySelector(".delete-button").addEventListener("click", () => deleteProspect(prospect.id));
     prospectsList.append(card);
@@ -1298,6 +1502,8 @@ function createChip(text, className = "meta-chip") {
 }
 
 function fromDbProspect(row) {
+  const purchasedAt = getPurchasedAt(row);
+  const returnedAt = row.returned_at || purchasedAt || null;
   return {
     id: row.id,
     storeId: row.store_id,
@@ -1310,7 +1516,8 @@ function fromDbProspect(row) {
     tags: Array.isArray(row.tags) ? row.tags : [],
     color: row.probability || "blue",
     createdAt: row.created_at,
-    returnedAt: row.returned_at,
+    returnedAt,
+    purchasedAt,
     updatedAt: row.updated_at,
   };
 }
@@ -1972,6 +2179,18 @@ async function markReturned(id) {
 
 async function unmarkReturned(id) {
   const { error } = await supabaseClient.rpc("store_unmark_returned", { p_token: currentContext.token, p_id: id });
+  if (error) formError.textContent = getSupabaseErrorMessage(error);
+  else await refreshAppData();
+}
+
+async function markPurchased(id) {
+  const { error } = await supabaseClient.rpc("store_mark_purchased", { p_token: currentContext.token, p_id: id });
+  if (error) formError.textContent = getSupabaseErrorMessage(error);
+  else await refreshAppData();
+}
+
+async function unmarkPurchased(id) {
+  const { error } = await supabaseClient.rpc("store_unmark_purchased", { p_token: currentContext.token, p_id: id });
   if (error) formError.textContent = getSupabaseErrorMessage(error);
   else await refreshAppData();
 }

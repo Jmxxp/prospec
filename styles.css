@@ -268,6 +268,7 @@ body.is-dark-mode h3,
 body.is-dark-mode h4,
 body.is-dark-mode .card-name,
 body.is-dark-mode .admin-store-header h3,
+body.is-dark-mode .admin-trend-heading strong,
 body.is-dark-mode .admin-overview-card span,
 body.is-dark-mode .admin-store-metrics strong,
 body.is-dark-mode .admin-comparison strong,
@@ -294,7 +295,71 @@ body.is-dark-mode .admin-professional-empty,
 body.is-dark-mode .admin-bar-row span,
 body.is-dark-mode .admin-bar-row strong,
 body.is-dark-mode .admin-trend-item span,
+body.is-dark-mode .admin-trend-legend span,
 body.is-dark-mode .weekday-cell {
+  color: var(--muted);
+}
+
+body.is-dark-mode .admin-line-grid line {
+  stroke: #243244;
+}
+
+body.is-dark-mode .admin-line-grid text,
+body.is-dark-mode .admin-line-label,
+body.is-dark-mode .admin-line-empty {
+  fill: var(--muted);
+}
+
+body.is-dark-mode .admin-line-vertical {
+  stroke: #223049;
+}
+
+body.is-dark-mode .admin-line-band {
+  fill: #142033;
+  opacity: 0.58;
+}
+
+body.is-dark-mode .admin-line-vertical.is-major {
+  stroke: #334155;
+}
+
+body.is-dark-mode .admin-line-x-tick {
+  stroke: #64748b;
+}
+
+body.is-dark-mode .admin-line-x-tick.is-today {
+  stroke: #93c5fd;
+}
+
+body.is-dark-mode .admin-goal-line line {
+  stroke: #94a3b8;
+}
+
+body.is-dark-mode .admin-goal-line text {
+  fill: var(--muted);
+}
+
+body.is-dark-mode .admin-line-value {
+  fill: var(--text);
+}
+
+body.is-dark-mode .admin-line-label.is-today {
+  fill: #bfdbfe;
+}
+
+body.is-dark-mode .admin-line-series circle {
+  fill: var(--series-color);
+}
+
+body.is-dark-mode .admin-trend-legend b {
+  color: var(--text);
+}
+
+body.is-dark-mode .admin-trend-legend small {
+  color: var(--muted);
+}
+
+body.is-dark-mode .admin-trend-title span {
   color: var(--muted);
 }
 
@@ -912,10 +977,16 @@ body.is-store-context #adminSettingsOverlay {
 }
 
 .admin-store-metrics em {
+  display: block;
   color: var(--store-accent, #1d4ed8);
   font-size: 0.8rem;
   font-style: normal;
   font-weight: 820;
+  line-height: 1.35;
+}
+
+.admin-store-metrics .admin-purchase-count {
+  color: #b45309;
 }
 
 .admin-store-chart {
@@ -951,7 +1022,7 @@ body.is-store-context #adminSettingsOverlay {
 
 .admin-comparison {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1025,8 +1096,8 @@ body.is-store-context #adminSettingsOverlay {
 
 .admin-professional-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) 96px 110px 72px;
-  gap: 8px;
+  grid-template-columns: minmax(150px, 1fr) repeat(3, minmax(92px, max-content)) 76px;
+  gap: 10px;
   align-items: center;
   min-height: 42px;
   padding: 8px 10px;
@@ -1044,20 +1115,28 @@ body.is-store-context #adminSettingsOverlay {
 }
 
 .admin-professional-row span {
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 4px;
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 780;
   text-align: right;
+  white-space: nowrap;
 }
 
 .admin-professional-row b {
   color: #0f172a;
   font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-professional-row em {
   display: inline-flex;
   justify-content: center;
+  justify-self: end;
+  width: 72px;
   min-height: 28px;
   align-items: center;
   border-radius: 999px;
@@ -1066,6 +1145,7 @@ body.is-store-context #adminSettingsOverlay {
   font-size: 0.82rem;
   font-style: normal;
   font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-bar-row {
@@ -1128,13 +1208,207 @@ body.is-store-context #adminSettingsOverlay {
 
 .admin-trend-chart {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
-  gap: 8px;
-  min-height: 190px;
+  gap: 12px;
+  min-height: 248px;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #ffffff;
+}
+
+.admin-trend-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-trend-heading strong {
+  color: #0f172a;
+  font-size: 0.94rem;
+}
+
+.admin-trend-title {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-trend-title span {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 780;
+}
+
+.admin-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 16px;
+}
+
+.admin-trend-legend span {
+  display: grid;
+  grid-template-columns: 9px auto;
+  gap: 1px 6px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 820;
+  white-space: nowrap;
+}
+
+.admin-trend-legend span.is-empty {
+  opacity: 0.48;
+}
+
+.admin-trend-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--series-color);
+}
+
+.admin-trend-legend b {
+  color: #334155;
+  font-size: 0.8rem;
+}
+
+.admin-trend-legend small {
+  grid-column: 2;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 760;
+}
+
+.admin-line-chart {
+  display: block;
+  width: 100%;
+  min-height: 210px;
+  overflow: visible;
+}
+
+.admin-line-grid line {
+  stroke: #e2e8f0;
+  stroke-width: 1;
+}
+
+.admin-line-vertical {
+  stroke: #eaf0f7;
+  stroke-width: 1;
+  opacity: 0.42;
+}
+
+.admin-line-band {
+  fill: #f8fafc;
+  opacity: 0.82;
+}
+
+.admin-line-vertical.is-major {
+  stroke: #dbe4ef;
+  opacity: 0.74;
+}
+
+.admin-line-x-tick {
+  stroke: #cbd5e1;
+  stroke-linecap: round;
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+.admin-line-x-tick.is-today {
+  stroke: #2563eb;
+  stroke-width: 1.6;
+  opacity: 0.9;
+}
+
+.admin-line-grid.is-zero line {
+  opacity: 0.28;
+}
+
+.admin-goal-line line {
+  stroke: #94a3b8;
+  stroke-dasharray: 6 7;
+  stroke-linecap: round;
+  stroke-width: 1.35;
+  opacity: 0.48;
+}
+
+.admin-goal-line text {
+  fill: #64748b;
+  font-size: 10px;
+  font-weight: 860;
+  text-anchor: end;
+}
+
+.admin-line-grid text,
+.admin-line-label,
+.admin-line-value {
+  fill: #64748b;
+  font-size: 9px;
+  font-weight: 760;
+}
+
+.admin-line-label {
+  text-anchor: middle;
+}
+
+.admin-trend-chart.is-monthly .admin-line-label {
+  font-size: 7.6px;
+  font-weight: 820;
+}
+
+.admin-line-label.is-weekend {
+  fill: #94a3b8;
+}
+
+.admin-line-label.is-today {
+  fill: #1d4ed8;
+  font-weight: 940;
+}
+
+.admin-line-value {
+  fill: #334155;
+  font-size: 10px;
+  font-weight: 880;
+  text-anchor: middle;
+}
+
+.admin-line-empty {
+  fill: #94a3b8;
+  font-size: 12px;
+  font-weight: 820;
+  text-anchor: middle;
+}
+
+.admin-line-area {
+  fill: var(--series-color);
+  opacity: 0.08;
+}
+
+.admin-line-series polyline {
+  fill: none;
+  stroke: var(--series-color);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.72;
+  filter: drop-shadow(0 3px 5px rgba(15, 23, 42, 0.08));
+}
+
+.admin-line-series circle {
+  fill: var(--series-color);
+  stroke: transparent;
+  opacity: 0.78;
+}
+
+.admin-line-series circle.is-zero {
+  opacity: 0.2;
+}
+
+.admin-line-series circle:hover {
+  opacity: 1;
+  r: 4.8;
 }
 
 .admin-trend-item {
@@ -1208,7 +1482,7 @@ h2 {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 10px;
 }
 
@@ -1224,6 +1498,11 @@ h2 {
 .summary-return {
   border-color: #c7d2fe;
   background: #f8faff;
+}
+
+.summary-purchase {
+  border-color: #fde68a;
+  background: #fffaf0;
 }
 
 .summary-item span {
@@ -1307,12 +1586,12 @@ h2 {
 }
 
 .compact-summary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .period-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1333,6 +1612,11 @@ h2 {
 .return-period-card {
   border-color: #bbf7d0;
   background: #fbfffd;
+}
+
+.purchase-period-card {
+  border-color: #fde68a;
+  background: #fffaf0;
 }
 
 .analysis-professional-panel .admin-professional-performance {
@@ -2258,6 +2542,7 @@ body.is-dark-mode .prospect-card[data-color="red"] {
 }
 
 .return-badge,
+.purchase-badge,
 .color-badge {
   flex: 0 0 auto;
   display: inline-flex;
@@ -2275,7 +2560,8 @@ body.is-dark-mode .prospect-card[data-color="red"] {
   color: var(--status-text);
 }
 
-.return-badge {
+.return-badge,
+.purchase-badge {
   gap: 4px;
   min-height: 26px;
   padding: 3px 8px;
@@ -2291,6 +2577,12 @@ body.is-dark-mode .prospect-card[data-color="red"] {
   border-color: #16a34a;
   background: #dcfce7;
   color: #166534;
+}
+
+.purchase-badge.is-purchased {
+  border-color: #f59e0b;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .card-info-row {
@@ -2357,6 +2649,7 @@ body.is-dark-mode .created-date-block {
 
 .card-footer-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   justify-content: flex-end;
@@ -2366,6 +2659,7 @@ body.is-dark-mode .created-date-block {
 /* New bottom row wrapper to align actions and footer on same line */
 .card-bottom {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -2408,6 +2702,18 @@ body.is-dark-mode .created-date-block {
   background: #fff7ed;
   border-color: #fed7aa;
   color: #9a3412;
+}
+
+.card-actions .mark-purchased-button {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.card-actions .unmark-purchased-button {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
 }
 
 .card-actions .whatsapp-button {
@@ -2523,6 +2829,7 @@ body.is-dark-mode .created-date-block {
   }
 
   .admin-professional-row span {
+    justify-content: flex-start;
     text-align: left;
   }
 
@@ -2640,6 +2947,10 @@ body.is-dark-mode .created-date-block {
     min-width: 0;
   }
 
+  .card-footer-meta {
+    justify-content: flex-start;
+  }
+
   .calendar-grid {
     gap: 5px;
   }
@@ -2649,17 +2960,12 @@ body.is-dark-mode .created-date-block {
   }
 
   .admin-trend-chart {
-    grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
-    min-height: 150px;
+    min-height: 214px;
+    padding: 12px;
   }
 
-  .admin-trend-bar {
-    min-height: 104px;
-  }
-
-  .admin-trend-bar i,
-  .admin-trend-bar b {
-    width: 12px;
+  .admin-line-chart {
+    min-height: 178px;
   }
 
   .delete-store-actions,
@@ -3006,6 +3312,7 @@ body.is-dark-mode .created-date-block {
   .meta-chip,
   .tag-chip,
   .return-badge,
+  .purchase-badge,
   .color-badge {
     max-width: 100%;
     white-space: normal;
