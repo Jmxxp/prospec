@@ -72,6 +72,14 @@ body.is-modal-open {
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
 }
 
+.theme-toggle i,
+.theme-toggle-icon {
+  display: block;
+  color: currentColor;
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .inline-theme-toggle {
   position: static;
   z-index: auto;
@@ -205,6 +213,7 @@ body.is-dark-mode .calendar-day,
 body.is-dark-mode .delete-store-panel,
 body.is-dark-mode .confirm-panel,
 body.is-dark-mode .purchase-panel,
+body.is-dark-mode .bonus-panel,
 body.is-dark-mode .panel,
 body.is-dark-mode .filters-panel,
 body.is-dark-mode .prospect-card {
@@ -229,6 +238,8 @@ body.is-dark-mode .tag-chip,
 body.is-dark-mode .professional-empty,
 body.is-dark-mode .professional-details-filters,
 body.is-dark-mode .professional-record-toolbar,
+body.is-dark-mode .bonus-filters,
+body.is-dark-mode .bonus-record,
 body.is-dark-mode .professional-details-empty,
 body.is-dark-mode .tag-option,
 body.is-dark-mode .professional-option {
@@ -300,6 +311,10 @@ body.is-dark-mode .professional-details-campaign-title strong,
 body.is-dark-mode .professional-details-campaign-row strong,
 body.is-dark-mode .professional-details-campaign-row b,
 body.is-dark-mode .professional-details-campaign-row em,
+body.is-dark-mode .bonus-summary strong,
+body.is-dark-mode .bonus-list-header strong,
+body.is-dark-mode .bonus-record-main strong,
+body.is-dark-mode .bonus-record-purchase strong,
 body.is-dark-mode .admin-professional-row b,
 body.is-dark-mode .admin-professional-row strong {
   color: var(--text);
@@ -325,6 +340,13 @@ body.is-dark-mode .admin-campaign-performance-row span small,
 body.is-dark-mode .professional-details-campaign-title span,
 body.is-dark-mode .professional-details-campaign-head,
 body.is-dark-mode .professional-details-campaign-row small,
+body.is-dark-mode .bonus-store-name,
+body.is-dark-mode .bonus-list-header span,
+body.is-dark-mode .bonus-list-header em,
+body.is-dark-mode .bonus-record-head,
+body.is-dark-mode .bonus-record-main span,
+body.is-dark-mode .bonus-record-contact,
+body.is-dark-mode .bonus-record-purchase span,
 body.is-dark-mode .admin-bar-row span,
 body.is-dark-mode .admin-bar-row strong,
 body.is-dark-mode .admin-trend-item span,
@@ -902,6 +924,7 @@ body.is-store-context #adminSettingsOverlay {
 }
 
 .admin-store-analysis,
+.admin-store-bonus,
 .admin-store-access {
   min-height: 36px;
   padding: 0 13px;
@@ -915,9 +938,20 @@ body.is-store-context #adminSettingsOverlay {
 }
 
 .admin-store-analysis:hover,
+.admin-store-bonus:hover,
 .admin-store-access:hover {
   background: color-mix(in srgb, var(--store-accent, #1d4ed8) 16%, white);
   transform: translateY(-1px);
+}
+
+.admin-store-bonus {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.admin-store-bonus:hover {
+  background: #fef3c7;
 }
 
 .admin-store-access {
@@ -1265,6 +1299,12 @@ body.is-dark-mode .admin-professional-list-button {
   border-color: color-mix(in srgb, var(--store-accent, #60a5fa) 44%, #334155);
   background: color-mix(in srgb, var(--store-accent, #60a5fa) 14%, #0f172a);
   color: #dbeafe;
+}
+
+body.is-dark-mode .admin-store-bonus {
+  border-color: rgba(245, 158, 11, 0.56);
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
 }
 
 .admin-campaign-performance {
@@ -2058,6 +2098,204 @@ body.is-dark-mode .professional-details-ghost-button {
   border-color: var(--line);
   background: #0f172a;
   color: var(--text);
+}
+
+.bonus-panel {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #f4d29b;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 28px 84px rgba(15, 23, 42, 0.3);
+}
+
+.bonus-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+
+.bonus-header h2 {
+  margin: 0;
+  font-size: 1.34rem;
+  line-height: 1.1;
+}
+
+.bonus-store-name {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 780;
+}
+
+.bonus-filters {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.1fr) minmax(150px, 0.8fr) minmax(150px, 0.8fr) minmax(160px, 0.9fr);
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.bonus-filters label[hidden] {
+  display: none;
+}
+
+.bonus-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bonus-summary div {
+  min-height: 82px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fffdf4, #ffffff);
+}
+
+.bonus-summary strong {
+  overflow-wrap: anywhere;
+  color: #92400e;
+  font-size: 1.38rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.bonus-summary span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 820;
+}
+
+.bonus-list {
+  display: grid;
+  gap: 8px;
+}
+
+.bonus-list-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  padding: 2px 2px 4px;
+}
+
+.bonus-list-header strong,
+.bonus-list-header span,
+.bonus-list-header em {
+  display: block;
+}
+
+.bonus-list-header strong {
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.bonus-list-header span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 780;
+}
+
+.bonus-list-header em {
+  color: #92400e;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.bonus-record-head,
+.bonus-record {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(190px, 1fr) minmax(150px, 0.7fr) minmax(130px, 0.55fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.bonus-record-head {
+  min-height: 34px;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 860;
+  text-transform: uppercase;
+}
+
+.bonus-record-list {
+  display: grid;
+  gap: 7px;
+}
+
+.bonus-record {
+  min-height: 64px;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.bonus-record-main,
+.bonus-record-contact,
+.bonus-record-purchase {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.bonus-record-main strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.94rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bonus-record-main span,
+.bonus-record-contact span,
+.bonus-record-contact small,
+.bonus-record-purchase span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bonus-record-contact small {
+  font-size: 0.68rem;
+}
+
+.bonus-record-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bonus-record-purchase {
+  justify-items: end;
+  text-align: right;
+}
+
+.bonus-record-purchase strong {
+  color: #92400e;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .analysis-header,
@@ -3328,7 +3566,9 @@ body.is-dark-mode .created-date-block {
 }
 
 @media (max-width: 980px) {
-  .professional-details-filters {
+  .professional-details-filters,
+  .bonus-filters,
+  .bonus-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -3337,7 +3577,9 @@ body.is-dark-mode .created-date-block {
   }
 
   .professional-record-toolbar,
-  .professional-record-card .card-main {
+  .professional-record-card .card-main,
+  .bonus-record-head,
+  .bonus-record {
     grid-template-columns: 1fr;
   }
 }
@@ -3367,8 +3609,12 @@ body.is-dark-mode .created-date-block {
   .admin-campaign-performance-row,
   .admin-professional-row,
   .professional-details-filters,
+  .bonus-filters,
+  .bonus-summary,
   .professional-details-campaign-row,
-  .professional-record-toolbar {
+  .professional-record-toolbar,
+  .bonus-record-head,
+  .bonus-record {
     grid-template-columns: 1fr;
   }
 
@@ -3440,6 +3686,7 @@ body.is-dark-mode .created-date-block {
   .analysis-panel,
   .admin-settings-panel,
   .professional-details-panel,
+  .bonus-panel,
   .delete-store-panel,
   .confirm-panel,
   .purchase-panel {
@@ -3488,6 +3735,7 @@ body.is-dark-mode .created-date-block {
   .summary-grid,
   .compact-summary,
   .professional-details-summary,
+  .bonus-summary,
   .status-picker,
   .period-grid {
     grid-template-columns: 1fr;
@@ -3876,6 +4124,7 @@ body.is-dark-mode .created-date-block {
   .analysis-panel,
   .admin-settings-panel,
   .professional-details-panel,
+  .bonus-panel,
   .delete-store-panel,
   .confirm-panel,
   .purchase-panel {
@@ -3889,6 +4138,7 @@ body.is-dark-mode .created-date-block {
   .analysis-panel,
   .admin-settings-panel,
   .professional-details-panel,
+  .bonus-panel,
   .delete-store-panel,
   .confirm-panel,
   .purchase-panel {
@@ -3897,6 +4147,26 @@ body.is-dark-mode .created-date-block {
 
   .professional-details-summary {
     grid-template-columns: 1fr;
+  }
+
+  .bonus-list-header {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .bonus-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 38px;
+    align-items: start;
+  }
+
+  .bonus-record-head {
+    display: none;
+  }
+
+  .bonus-record-purchase {
+    justify-items: start;
+    text-align: left;
   }
 
   .prospect-card {
