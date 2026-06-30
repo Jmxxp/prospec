@@ -189,6 +189,12 @@ body.is-dark-mode .admin-store-metrics div,
 body.is-dark-mode .admin-comparison div,
 body.is-dark-mode .admin-professional-performance,
 body.is-dark-mode .admin-professional-row,
+body.is-dark-mode .admin-campaign-performance,
+body.is-dark-mode .admin-campaign-performance-row,
+body.is-dark-mode .professional-details-panel,
+body.is-dark-mode .professional-details-summary div,
+body.is-dark-mode .professional-details-campaign-head,
+body.is-dark-mode .professional-details-campaign-row,
 body.is-dark-mode .admin-store-chart,
 body.is-dark-mode .admin-trend-chart,
 body.is-dark-mode .analysis-panel,
@@ -198,6 +204,7 @@ body.is-dark-mode .calendar-panel,
 body.is-dark-mode .calendar-day,
 body.is-dark-mode .delete-store-panel,
 body.is-dark-mode .confirm-panel,
+body.is-dark-mode .purchase-panel,
 body.is-dark-mode .panel,
 body.is-dark-mode .filters-panel,
 body.is-dark-mode .prospect-card {
@@ -220,11 +227,25 @@ body.is-dark-mode .store-tags-preview .tag-chip,
 body.is-dark-mode .meta-chip,
 body.is-dark-mode .tag-chip,
 body.is-dark-mode .professional-empty,
+body.is-dark-mode .professional-details-filters,
+body.is-dark-mode .professional-record-toolbar,
+body.is-dark-mode .professional-details-empty,
 body.is-dark-mode .tag-option,
 body.is-dark-mode .professional-option {
   border-color: var(--line);
   background: var(--surface-soft);
   color: var(--text);
+}
+
+body.is-dark-mode .purchase-client {
+  border-color: rgba(245, 158, 11, 0.34);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+body.is-dark-mode .card-purchase-info {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: rgba(146, 64, 14, 0.2);
+  color: #fbbf24;
 }
 
 body.is-dark-mode .auth-mode-button.is-active,
@@ -274,6 +295,11 @@ body.is-dark-mode .admin-store-metrics strong,
 body.is-dark-mode .admin-comparison strong,
 body.is-dark-mode .period-grid span,
 body.is-dark-mode .calendar-day-number,
+body.is-dark-mode .professional-details-summary strong,
+body.is-dark-mode .professional-details-campaign-title strong,
+body.is-dark-mode .professional-details-campaign-row strong,
+body.is-dark-mode .professional-details-campaign-row b,
+body.is-dark-mode .professional-details-campaign-row em,
 body.is-dark-mode .admin-professional-row b,
 body.is-dark-mode .admin-professional-row strong {
   color: var(--text);
@@ -289,9 +315,16 @@ body.is-dark-mode .calendar-header p,
 body.is-dark-mode .admin-store-username,
 body.is-dark-mode .admin-store-metrics span,
 body.is-dark-mode .admin-comparison span,
-body.is-dark-mode .admin-professional-row span,
+body.is-dark-mode .admin-professional-metrics span,
+body.is-dark-mode .admin-professional-rates span,
+body.is-dark-mode .admin-professional-name small,
 body.is-dark-mode .admin-professional-performance-header span,
 body.is-dark-mode .admin-professional-empty,
+body.is-dark-mode .admin-campaign-performance-header span,
+body.is-dark-mode .admin-campaign-performance-row span small,
+body.is-dark-mode .professional-details-campaign-title span,
+body.is-dark-mode .professional-details-campaign-head,
+body.is-dark-mode .professional-details-campaign-row small,
 body.is-dark-mode .admin-bar-row span,
 body.is-dark-mode .admin-bar-row strong,
 body.is-dark-mode .admin-trend-item span,
@@ -1059,13 +1092,39 @@ body.is-store-context #adminSettingsOverlay {
   font-weight: 780;
 }
 
+.admin-analysis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.admin-analysis-grid > * {
+  min-width: 0;
+}
+
+.admin-professional-performance-slot,
+.admin-campaign-performance-slot {
+  display: grid;
+}
+
+.admin-analysis-grid .admin-store-chart {
+  grid-column: 1 / -1;
+}
+
 .admin-professional-performance {
   display: grid;
   gap: 10px;
+  overflow: hidden;
   padding: 14px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
   background: #ffffff;
+}
+
+.admin-analysis-grid .admin-professional-performance,
+.admin-analysis-grid .admin-campaign-performance {
+  min-height: 100%;
 }
 
 .admin-professional-performance-header {
@@ -1096,8 +1155,156 @@ body.is-store-context #adminSettingsOverlay {
 
 .admin-professional-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) repeat(3, minmax(92px, max-content)) 76px;
+  grid-template-columns: minmax(150px, 1fr) minmax(186px, 0.76fr) minmax(86px, 0.34fr);
   gap: 10px;
+  align-items: center;
+  min-height: 62px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.admin-professional-name {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-professional-name strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.94rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-professional-name small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-professional-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(58px, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-professional-metrics span {
+  display: grid;
+  justify-content: flex-end;
+  justify-items: end;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 780;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-professional-metrics span small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.admin-professional-metrics b {
+  color: #0f172a;
+  font-size: 1.08rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.admin-professional-actions {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+  justify-items: end;
+  min-width: 0;
+}
+
+.admin-professional-rates {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.admin-professional-rates span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 820;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-professional-list-button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--store-accent, #1d4ed8) 32%, #dbe3ee);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--store-accent, #1d4ed8) 8%, white);
+  color: var(--store-accent, #1d4ed8);
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 900;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.admin-professional-list-button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--store-accent, #1d4ed8) 58%, #dbe3ee);
+  background: color-mix(in srgb, var(--store-accent, #1d4ed8) 14%, white);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--store-accent, #1d4ed8) 14%, transparent);
+}
+
+body.is-dark-mode .admin-professional-list-button {
+  border-color: color-mix(in srgb, var(--store-accent, #60a5fa) 44%, #334155);
+  background: color-mix(in srgb, var(--store-accent, #60a5fa) 14%, #0f172a);
+  color: #dbeafe;
+}
+
+.admin-campaign-performance {
+  display: grid;
+  gap: 10px;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.admin-campaign-performance-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-campaign-performance h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.admin-campaign-performance-header span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 780;
+}
+
+.admin-campaign-performance-list {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-campaign-performance-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) repeat(3, minmax(58px, auto)) 54px;
+  gap: 8px;
   align-items: center;
   min-height: 42px;
   padding: 8px 10px;
@@ -1106,46 +1313,39 @@ body.is-store-context #adminSettingsOverlay {
   background: #f8fafc;
 }
 
-.admin-professional-row strong {
+.admin-campaign-performance-row strong {
   overflow: hidden;
   color: #0f172a;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.admin-professional-row span {
-  display: inline-flex;
-  justify-content: flex-end;
-  align-items: baseline;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 780;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.admin-professional-row b {
+.admin-campaign-performance-row span {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
   color: #0f172a;
-  font-size: 0.95rem;
-  font-variant-numeric: tabular-nums;
+  font-size: 0.84rem;
+  font-weight: 900;
 }
 
-.admin-professional-row em {
-  display: inline-flex;
-  justify-content: center;
-  justify-self: end;
-  width: 72px;
-  min-height: 28px;
-  align-items: center;
+.admin-campaign-performance-row span small {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 760;
+}
+
+.admin-campaign-performance-row em {
+  display: inline-grid;
+  place-items: center;
+  min-height: 24px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--store-accent, #1d4ed8) 12%, white);
+  background: #eef4ff;
   color: var(--store-accent, #1d4ed8);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   font-style: normal;
   font-weight: 900;
-  font-variant-numeric: tabular-nums;
 }
 
 .admin-bar-row {
@@ -1182,7 +1382,8 @@ body.is-store-context #adminSettingsOverlay {
 }
 
 .delete-store-panel,
-.confirm-panel {
+.confirm-panel,
+.purchase-panel {
   display: grid;
   width: min(460px, 100%);
   gap: 14px;
@@ -1200,10 +1401,50 @@ body.is-store-context #adminSettingsOverlay {
 }
 
 .delete-store-actions,
-.confirm-actions {
+.confirm-actions,
+.purchase-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.purchase-panel {
+  align-self: start;
+  align-content: start;
+  border-color: #fed7aa;
+}
+
+.purchase-client {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: #fffbeb;
+}
+
+.purchase-client span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.purchase-client strong {
+  overflow-wrap: anywhere;
+  color: #92400e;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.purchase-form {
+  display: grid;
+  gap: 12px;
+}
+
+.purchase-form label {
+  display: grid;
+  gap: 6px;
 }
 
 .admin-trend-chart {
@@ -1558,6 +1799,265 @@ h2 {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 26px 80px rgba(15, 23, 42, 0.28);
+}
+
+.professional-details-panel {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #cbd9ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 28px 84px rgba(15, 23, 42, 0.3);
+}
+
+.professional-details-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
+.professional-details-header h2 {
+  margin: 0;
+  font-size: 1.34rem;
+  line-height: 1.1;
+}
+
+.professional-details-filters {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.8fr) minmax(150px, 0.8fr) minmax(180px, 1fr) minmax(150px, 0.8fr);
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.professional-details-filters label[hidden] {
+  display: none;
+}
+
+.professional-details-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.professional-details-summary div {
+  min-height: 86px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.professional-details-summary strong {
+  color: #0f172a;
+  font-size: 1.55rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.professional-details-summary span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.professional-details-campaigns {
+  display: grid;
+  gap: 8px;
+}
+
+.professional-details-campaign-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  padding: 2px 2px 4px;
+}
+
+.professional-details-campaign-title strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.professional-details-campaign-title span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 780;
+}
+
+.professional-details-action-button,
+.professional-details-ghost-button {
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.professional-details-action-button {
+  border: 1px solid color-mix(in srgb, var(--store-accent, #1d4ed8) 38%, #cbd5e1);
+  background: color-mix(in srgb, var(--store-accent, #1d4ed8) 10%, white);
+  color: var(--store-accent, #1d4ed8);
+}
+
+.professional-details-ghost-button {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.professional-details-action-button:hover,
+.professional-details-ghost-button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--store-accent, #1d4ed8) 56%, #cbd5e1);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.professional-details-campaign-head,
+.professional-details-campaign-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(76px, 0.4fr)) repeat(2, minmax(70px, 0.32fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.professional-details-campaign-head {
+  min-height: 36px;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 860;
+  text-transform: uppercase;
+}
+
+.professional-details-campaign-head span {
+  text-align: right;
+}
+
+.professional-details-campaign-row {
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.professional-details-campaign-row:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--store-accent, #1d4ed8) 34%, #cbd5e1);
+  background: color-mix(in srgb, var(--store-accent, #1d4ed8) 5%, #f8fafc);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+}
+
+.professional-details-campaign-row strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.professional-details-campaign-row span {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 780;
+}
+
+.professional-details-campaign-row b {
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.professional-details-campaign-row em {
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-style: normal;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.professional-details-empty {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+}
+
+.professional-record-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 0.45fr) minmax(210px, auto);
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.professional-record-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.professional-record-list {
+  display: grid;
+  gap: 10px;
+}
+
+.professional-record-card {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.professional-record-card .card-actions {
+  display: none;
+}
+
+.professional-record-card .card-main {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, auto);
+}
+
+body.is-dark-mode .professional-details-action-button {
+  border-color: color-mix(in srgb, var(--store-accent, #60a5fa) 44%, #334155);
+  background: color-mix(in srgb, var(--store-accent, #60a5fa) 14%, #0f172a);
+  color: #dbeafe;
+}
+
+body.is-dark-mode .professional-details-ghost-button {
+  border-color: var(--line);
+  background: #0f172a;
+  color: var(--text);
 }
 
 .analysis-header,
@@ -2486,7 +2986,8 @@ body.is-dark-mode .prospect-card[data-color="red"] {
   font-weight: 840;
 }
 
-.card-professional {
+.card-professional,
+.card-purchase-info {
   display: inline-flex;
   width: fit-content;
   max-width: 100%;
@@ -2502,22 +3003,37 @@ body.is-dark-mode .prospect-card[data-color="red"] {
   font-weight: 760;
 }
 
-.card-professional i {
+.card-purchase-info {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.card-professional i,
+.card-purchase-info i {
   font-size: 0.82rem;
 }
 
-.card-professional span {
+.card-professional span,
+.card-purchase-info span {
   color: inherit;
   opacity: 0.74;
 }
 
-.card-professional strong {
+.card-professional strong,
+.card-purchase-info strong,
+.card-purchase-info em {
   overflow: hidden;
   color: inherit;
   font-size: 0.9rem;
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.card-purchase-info em {
+  font-style: normal;
+  font-weight: 820;
 }
 
 .card-notes {
@@ -2587,6 +3103,8 @@ body.is-dark-mode .prospect-card[data-color="red"] {
 
 .card-info-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
 }
 
@@ -2803,6 +3321,27 @@ body.is-dark-mode .created-date-block {
   }
 }
 
+@media (max-width: 1480px) {
+  .admin-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .professional-details-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .professional-details-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .professional-record-toolbar,
+  .professional-record-card .card-main {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 720px) {
   .app-shell {
     width: 100%;
@@ -2824,13 +3363,29 @@ body.is-dark-mode .created-date-block {
   .admin-password-grid,
   .admin-store-metrics,
   .admin-comparison,
-  .admin-professional-row {
+  .admin-analysis-grid,
+  .admin-campaign-performance-row,
+  .admin-professional-row,
+  .professional-details-filters,
+  .professional-details-campaign-row,
+  .professional-record-toolbar {
     grid-template-columns: 1fr;
   }
 
-  .admin-professional-row span {
+  .admin-professional-metrics span {
     justify-content: flex-start;
+    justify-items: start;
     text-align: left;
+  }
+
+  .admin-professional-actions,
+  .admin-professional-rates,
+  .admin-campaign-performance-row span {
+    justify-items: start;
+  }
+
+  .admin-professional-actions {
+    grid-template-columns: 1fr;
   }
 
   .card-main,
@@ -2884,8 +3439,10 @@ body.is-dark-mode .created-date-block {
 
   .analysis-panel,
   .admin-settings-panel,
+  .professional-details-panel,
   .delete-store-panel,
-  .confirm-panel {
+  .confirm-panel,
+  .purchase-panel {
     width: 100%;
     max-height: calc(100dvh - 20px);
   }
@@ -2930,6 +3487,7 @@ body.is-dark-mode .created-date-block {
 
   .summary-grid,
   .compact-summary,
+  .professional-details-summary,
   .status-picker,
   .period-grid {
     grid-template-columns: 1fr;
@@ -2969,7 +3527,8 @@ body.is-dark-mode .created-date-block {
   }
 
   .delete-store-actions,
-  .confirm-actions {
+  .confirm-actions,
+  .purchase-actions {
     grid-template-columns: 1fr;
   }
 
@@ -3103,6 +3662,7 @@ body.is-dark-mode .created-date-block {
 
   .admin-settings-panel,
   .analysis-panel,
+  .professional-details-panel,
   .delete-store-panel {
     padding: 14px;
   }
@@ -3141,6 +3701,34 @@ body.is-dark-mode .created-date-block {
     width: 100%;
   }
 
+  .professional-details-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .professional-details-campaign-head {
+    display: none;
+  }
+
+  .professional-details-campaign-row span,
+  .professional-details-campaign-row em {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .professional-details-campaign-title {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .professional-details-action-button,
+  .professional-details-ghost-button {
+    width: 100%;
+  }
+
+  .professional-record-checks {
+    grid-template-columns: 1fr;
+  }
+
   .admin-professional-performance-header {
     display: grid;
     gap: 4px;
@@ -3151,9 +3739,12 @@ body.is-dark-mode .created-date-block {
     gap: 4px;
   }
 
-  .admin-professional-row em {
+  .admin-professional-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-professional-list-button {
     justify-self: start;
-    min-width: 72px;
   }
 
   .store-settings-content,
@@ -3284,8 +3875,10 @@ body.is-dark-mode .created-date-block {
   .prospects-list,
   .analysis-panel,
   .admin-settings-panel,
+  .professional-details-panel,
   .delete-store-panel,
-  .confirm-panel {
+  .confirm-panel,
+  .purchase-panel {
     padding: 12px;
   }
 
@@ -3295,9 +3888,15 @@ body.is-dark-mode .created-date-block {
 
   .analysis-panel,
   .admin-settings-panel,
+  .professional-details-panel,
   .delete-store-panel,
-  .confirm-panel {
+  .confirm-panel,
+  .purchase-panel {
     max-height: calc(100dvh - 16px);
+  }
+
+  .professional-details-summary {
+    grid-template-columns: 1fr;
   }
 
   .prospect-card {
@@ -3318,12 +3917,15 @@ body.is-dark-mode .created-date-block {
     white-space: normal;
   }
 
-  .card-professional {
+  .card-professional,
+  .card-purchase-info {
     width: 100%;
     border-radius: 8px;
   }
 
-  .card-professional strong {
+  .card-professional strong,
+  .card-purchase-info strong,
+  .card-purchase-info em {
     white-space: normal;
   }
 

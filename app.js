@@ -86,6 +86,28 @@ const confirmDeleteStoreBtn = document.querySelector("#confirmDeleteStoreBtn");
 const logoutOverlay = document.querySelector("#logoutOverlay");
 const cancelLogoutBtn = document.querySelector("#cancelLogoutBtn");
 const confirmLogoutBtn = document.querySelector("#confirmLogoutBtn");
+const purchaseOverlay = document.querySelector("#purchaseOverlay");
+const purchaseForm = document.querySelector("#purchaseForm");
+const purchaseClientName = document.querySelector("#purchaseClientName");
+const purchaseValueInput = document.querySelector("#purchaseValueInput");
+const purchaseOsInput = document.querySelector("#purchaseOsInput");
+const purchaseMessage = document.querySelector("#purchaseMessage");
+const cancelPurchaseBtn = document.querySelector("#cancelPurchaseBtn");
+const confirmPurchaseBtn = document.querySelector("#confirmPurchaseBtn");
+const professionalDetailsOverlay = document.querySelector("#professionalDetailsOverlay");
+const professionalDetailsTitle = document.querySelector("#professional-details-title");
+const professionalDetailsClose = document.querySelector("#professionalDetailsClose");
+const professionalDetailsPeriod = document.querySelector("#professionalDetailsPeriod");
+const professionalDetailsDate = document.querySelector("#professionalDetailsDate");
+const professionalDetailsWeek = document.querySelector("#professionalDetailsWeek");
+const professionalDetailsMonth = document.querySelector("#professionalDetailsMonth");
+const professionalDetailsDateLabel = document.querySelector("#professionalDetailsDateLabel");
+const professionalDetailsWeekLabel = document.querySelector("#professionalDetailsWeekLabel");
+const professionalDetailsMonthLabel = document.querySelector("#professionalDetailsMonthLabel");
+const professionalDetailsCampaign = document.querySelector("#professionalDetailsCampaign");
+const professionalDetailsStatus = document.querySelector("#professionalDetailsStatus");
+const professionalDetailsSummary = document.querySelector("#professionalDetailsSummary");
+const professionalDetailsCampaigns = document.querySelector("#professionalDetailsCampaigns");
 const form = document.querySelector("#prospectForm");
 const editingIdInput = document.querySelector("#editingId");
 const nameInput = document.querySelector("#nameInput");
@@ -155,9 +177,11 @@ let calendarDate = new Date();
 let adminPeriodByStore = {};
 let analysisScopeStore = null;
 let storeToDelete = null;
+let professionalDetailsState = null;
 let realtimeChannel = null;
 let realtimeRefreshTimer = null;
 let realtimeSubscriptionKey = "";
+let pendingPurchaseId = null;
 
 const LAST_SELECTION_KEY_PREFIX = "prospec.lastSelection";
 
@@ -179,6 +203,16 @@ function cleanTag(value) {
 
 function cleanProfessionalName(value) {
   return String(value || "").trim().replace(/\s+/g, " ").slice(0, 80);
+}
+
+function cleanPurchaseOs(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 80);
+}
+
+function formatPurchaseOs(value) {
+  const os = cleanPurchaseOs(value);
+  if (!os) return "";
+  return /^os(\b|[-_\s])/i.test(os) ? os : `OS ${os}`;
 }
 
 function escapeHtml(value) {
@@ -208,6 +242,33 @@ function formatCpf(value) {
   if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
   if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function parsePurchaseValue(value) {
+  let normalizedValue = String(value || "")
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/[R$]/gi, "")
+    .replace(/[^\d,.-]/g, "");
+  const hasComma = normalizedValue.includes(",");
+  const hasDot = normalizedValue.includes(".");
+  if (hasComma && hasDot) {
+    normalizedValue = normalizedValue.replace(/\./g, "").replace(",", ".");
+  } else if (hasComma) {
+    normalizedValue = normalizedValue.replace(",", ".");
+  } else if (hasDot) {
+    const parts = normalizedValue.split(".");
+    if (parts.length > 2 || parts[parts.length - 1]?.length === 3) normalizedValue = normalizedValue.replace(/\./g, "");
+  }
+  const amount = Number(normalizedValue);
+  if (!Number.isFinite(amount)) return 0;
+  return Math.round(amount * 100) / 100;
+}
+
+function formatCurrency(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amount);
 }
 
 function formatDateTime(isoDate) {
@@ -439,7 +500,11 @@ function getSupabaseErrorMessage(error) {
   if (
     error.message?.includes("store_mark_purchased") ||
     error.message?.includes("store_unmark_purchased") ||
-    error.message?.includes("purchased_at")
+    error.message?.includes("purchased_at") ||
+    error.message?.includes("purchase_value") ||
+    error.message?.includes("purchase_os") ||
+    error.message?.includes("p_purchase_value") ||
+    error.message?.includes("p_purchase_os")
   ) {
     return "Atualize o banco no Supabase: rode o arquivo supabase_compras_prospeccao.sql no SQL Editor.";
   }
@@ -619,7 +684,12 @@ function setTopForContext() {
 function syncModalScrollLock() {
   document.body.classList.toggle(
     "is-modal-open",
-    !analysisOverlay.hidden || !adminSettingsOverlay.hidden || !deleteStoreOverlay.hidden || !logoutOverlay.hidden
+    !analysisOverlay.hidden ||
+      !adminSettingsOverlay.hidden ||
+      !deleteStoreOverlay.hidden ||
+      !logoutOverlay.hidden ||
+      !purchaseOverlay.hidden ||
+      !professionalDetailsOverlay.hidden
   );
 }
 
@@ -627,6 +697,22 @@ function setLogoutConfirmOpen(isOpen) {
   logoutOverlay.hidden = !isOpen;
   syncModalScrollLock();
   if (isOpen) cancelLogoutBtn.focus();
+}
+
+function setPurchaseDialogOpen(isOpen) {
+  purchaseOverlay.hidden = !isOpen;
+  syncModalScrollLock();
+  if (isOpen) purchaseValueInput.focus();
+}
+
+function closePurchaseDialog() {
+  pendingPurchaseId = null;
+  purchaseForm.reset();
+  purchaseClientName.textContent = "";
+  purchaseMessage.textContent = "";
+  confirmPurchaseBtn.disabled = false;
+  cancelPurchaseBtn.disabled = false;
+  setPurchaseDialogOpen(false);
 }
 
 function setAdminSettingsOpen(isOpen) {
@@ -641,6 +727,371 @@ function setAnalysisOpen(isOpen, store = null) {
   analysisOverlay.hidden = !isOpen;
   syncModalScrollLock();
   analysisToggle.setAttribute("aria-expanded", String(isOpen));
+}
+
+function updateProfessionalDetailsFilterVisibility() {
+  const period = professionalDetailsPeriod.value;
+  professionalDetailsDateLabel.hidden = period !== "day";
+  professionalDetailsWeekLabel.hidden = period !== "week";
+  professionalDetailsMonthLabel.hidden = period !== "month";
+}
+
+function getProfessionalDetailsWindow() {
+  const now = new Date();
+  const period = professionalDetailsPeriod.value;
+  if (period === "current") return professionalDetailsState?.periodWindow || { start: null, end: null, label: "período do card" };
+  if (period === "today") return { start: startOfDay(now), end: addDays(startOfDay(now), 1), label: "hoje" };
+  if (period === "day") {
+    const start = parseDateInput(professionalDetailsDate.value) || startOfDay(now);
+    return { start, end: addDays(start, 1), label: "dia selecionado" };
+  }
+  if (period === "week") {
+    const start = parseWeekInput(professionalDetailsWeek.value) || startOfWeek(now);
+    return { start, end: addDays(start, 7), label: "semana selecionada" };
+  }
+  if (period === "month") {
+    const start = parseMonthInput(professionalDetailsMonth.value) || startOfMonth(now);
+    return { start, end: addMonths(start, 1), label: "mês selecionado" };
+  }
+  if (period === "year") return { start: startOfYear(now), end: addYears(startOfYear(now), 1), label: "ano atual" };
+  return { start: null, end: null, label: "todos" };
+}
+
+function formatWindowLabel(periodWindow) {
+  if (!periodWindow?.start || !periodWindow?.end) return "Todos os registros";
+  const formatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+  const startLabel = formatter.format(periodWindow.start).replace(".", "");
+  const endLabel = formatter.format(addDays(periodWindow.end, -1)).replace(".", "");
+  return startLabel === endLabel ? startLabel : `${startLabel} até ${endLabel}`;
+}
+
+function getCampaignKey(tag) {
+  return tag ? `tag:${normalize(tag)}` : "empty";
+}
+
+function getProspectCampaignKeys(prospect) {
+  return prospect.tags?.length ? prospect.tags.map((tag) => getCampaignKey(tag)) : ["empty"];
+}
+
+function matchesProfessional(prospect, professional) {
+  const professionalId = professional?.id || "";
+  const professionalName = professional?.name || "";
+  const hasProspectProfessional = Boolean(prospect.professionalId || prospect.professionalName);
+  const sameId = Boolean(professionalId && prospect.professionalId === professionalId);
+  const sameName = Boolean(professionalName && normalize(prospect.professionalName) === normalize(professionalName));
+  if (sameId) return true;
+  if (professionalId && !prospect.professionalId && sameName) return true;
+  if (!professionalId && sameName) return true;
+  return normalize(professionalName) === "sem profissional" && !hasProspectProfessional;
+}
+
+function getProfessionalBaseProspects() {
+  if (!professionalDetailsState?.store?.id || !professionalDetailsState.professional) return [];
+  return prospects.filter((prospect) => {
+    return prospect.storeId === professionalDetailsState.store.id && matchesProfessional(prospect, professionalDetailsState.professional);
+  });
+}
+
+function getProfessionalFilteredProspects() {
+  const periodWindow = getProfessionalDetailsWindow();
+  const selectedCampaign = professionalDetailsCampaign.value || "all";
+  const selectedStatus = professionalDetailsStatus.value || "all";
+  const recordFilters = professionalDetailsState?.recordFilters || {};
+  const searchText = normalize(recordFilters.search || "");
+  const selectedColor = recordFilters.color || "all";
+  const onlyWithPhone = Boolean(recordFilters.hasPhone);
+  const onlyWithCpf = Boolean(recordFilters.hasCpf);
+  return getProfessionalBaseProspects().filter((prospect) => {
+    if (periodWindow.start && !isBetween(prospect.createdAt, periodWindow.start, periodWindow.end)) return false;
+    if (selectedCampaign !== "all" && !getProspectCampaignKeys(prospect).includes(selectedCampaign)) return false;
+    if (selectedStatus === "returned" && !prospect.returnedAt) return false;
+    if (selectedStatus === "purchased" && !prospect.purchasedAt) return false;
+    if (selectedStatus === "not-purchased" && prospect.purchasedAt) return false;
+    if (selectedStatus === "not-returned" && prospect.returnedAt) return false;
+    if (searchText && !buildSearchText(prospect).includes(searchText)) return false;
+    if (selectedColor !== "all" && prospect.color !== selectedColor) return false;
+    if (onlyWithPhone && !onlyDigits(prospect.phone)) return false;
+    if (onlyWithCpf && !onlyDigits(prospect.cpf)) return false;
+    return true;
+  });
+}
+
+function renderProfessionalCampaignOptions(baseProspects) {
+  const selectedValue = professionalDetailsCampaign.value || "all";
+  const optionsByKey = new Map();
+  (professionalDetailsState?.store?.tags || []).forEach((tag) => {
+    optionsByKey.set(getCampaignKey(tag), tag);
+  });
+  baseProspects.forEach((prospect) => {
+    if (!prospect.tags?.length) {
+      optionsByKey.set("empty", "Sem campanha");
+      return;
+    }
+    prospect.tags.forEach((tag) => optionsByKey.set(getCampaignKey(tag), tag));
+  });
+  const options = Array.from(optionsByKey.entries()).sort((first, second) => {
+    if (first[0] === "empty") return 1;
+    if (second[0] === "empty") return -1;
+    return first[1].localeCompare(second[1], "pt-BR");
+  });
+  professionalDetailsCampaign.innerHTML = `
+    <option value="all">Todas as campanhas</option>
+    ${options.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("")}
+  `;
+  professionalDetailsCampaign.value = Array.from(professionalDetailsCampaign.options).some((option) => option.value === selectedValue)
+    ? selectedValue
+    : "all";
+}
+
+function getProfessionalCampaignLabel(value) {
+  if (value === "all") return "Todos os registros";
+  return Array.from(professionalDetailsCampaign.options).find((option) => option.value === value)?.textContent || "Campanha";
+}
+
+function renderProfessionalRecordFilters() {
+  const filters = professionalDetailsState?.recordFilters || {};
+  const color = filters.color || "all";
+  return `
+    <div class="professional-record-toolbar">
+      <label>
+        Buscar registro
+        <input class="professional-record-search" type="search" placeholder="Nome, telefone, CPF, observação..." value="${escapeHtml(filters.search || "")}" />
+      </label>
+      <label>
+        Probabilidade
+        <select class="professional-record-color">
+          <option value="all" ${color === "all" ? "selected" : ""}>Todas as cores</option>
+          ${Object.entries(DEFAULT_COLOR_LABELS).map(([key, label]) => `
+            <option value="${key}" ${color === key ? "selected" : ""}>${escapeHtml(label)}</option>
+          `).join("")}
+        </select>
+      </label>
+      <div class="professional-record-checks">
+        <label class="check-filter">
+          <input class="professional-record-phone" type="checkbox" ${filters.hasPhone ? "checked" : ""} />
+          Com telefone
+        </label>
+        <label class="check-filter">
+          <input class="professional-record-cpf" type="checkbox" ${filters.hasCpf ? "checked" : ""} />
+          Com CPF
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+function createProfessionalRecordCard(prospect) {
+  const card = document.createElement("article");
+  card.className = "prospect-card professional-record-card";
+  card.dataset.color = prospect.color;
+  const tags = prospect.tags?.length ? prospect.tags : ["Sem campanha"];
+  const contact = [prospect.phone, prospect.cpf].filter(Boolean).join(" | ") || "Sem telefone ou CPF";
+  const returnedText = prospect.returnedAt ? `Veio ${formatDateTime(prospect.returnedAt)}` : "Não veio";
+  const purchasedText = prospect.purchasedAt ? `Comprou ${formatDateTime(prospect.purchasedAt)}` : "Não comprou";
+  card.innerHTML = `
+    <div class="card-main">
+      <div class="card-title-block">
+        <div class="card-title-row">
+          <h3 class="card-name">${escapeHtml(getDisplayName(prospect))}</h3>
+        </div>
+        <div class="card-meta">
+          <span class="meta-chip">${escapeHtml(contact)}</span>
+          ${prospect.phone ? `<span class="meta-chip">WhatsApp ${escapeHtml(prospect.phone)}</span>` : ""}
+        </div>
+      </div>
+      <div class="card-badges">
+        <span class="color-badge">${escapeHtml(getColorLabel(prospect.color))}</span>
+        <div class="card-tags">${tags.map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join("")}</div>
+      </div>
+    </div>
+    <p class="card-notes">${escapeHtml(prospect.notes || "")}</p>
+    <div class="card-info-row">
+      <div class="card-professional">
+        <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
+        <span>Profissional</span>
+        <strong>${escapeHtml(prospect.professionalName || professionalDetailsState?.professional?.name || "Sem profissional")}</strong>
+      </div>
+    </div>
+    <div class="card-bottom">
+      <div></div>
+      <div class="card-footer-meta">
+        <div class="created-date-block"><strong>Registrado</strong> <em>${formatDateTimeWithWeekday(prospect.createdAt)}</em></div>
+        <span class="return-badge ${prospect.returnedAt ? "is-returned" : ""}">${escapeHtml(returnedText)}</span>
+        <span class="purchase-badge ${prospect.purchasedAt ? "is-purchased" : ""}">${escapeHtml(purchasedText)}</span>
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+function bindProfessionalRecordFilters() {
+  const toolbar = professionalDetailsCampaigns.querySelector(".professional-record-toolbar");
+  if (!toolbar || !professionalDetailsState) return;
+  const updateFilter = (key, value, focusSelector = "") => {
+    professionalDetailsState.recordFilters = { ...(professionalDetailsState.recordFilters || {}), [key]: value };
+    renderProfessionalDetails();
+    if (!focusSelector) return;
+    const field = professionalDetailsCampaigns.querySelector(focusSelector);
+    field?.focus();
+    if (field?.setSelectionRange && typeof field.value === "string") {
+      const cursorPosition = field.value.length;
+      field.setSelectionRange(cursorPosition, cursorPosition);
+    }
+  };
+  toolbar.querySelector(".professional-record-search")?.addEventListener("input", (event) => updateFilter("search", event.target.value, ".professional-record-search"));
+  toolbar.querySelector(".professional-record-color")?.addEventListener("change", (event) => updateFilter("color", event.target.value));
+  toolbar.querySelector(".professional-record-phone")?.addEventListener("change", (event) => updateFilter("hasPhone", event.target.checked));
+  toolbar.querySelector(".professional-record-cpf")?.addEventListener("change", (event) => updateFilter("hasCpf", event.target.checked));
+}
+
+function openProfessionalRecords(campaignKey = "all") {
+  if (!professionalDetailsState) return;
+  professionalDetailsPeriod.value = "all";
+  professionalDetailsCampaign.value = Array.from(professionalDetailsCampaign.options).some((option) => option.value === campaignKey)
+    ? campaignKey
+    : "all";
+  professionalDetailsStatus.value = "all";
+  professionalDetailsState.recordFilters = { search: "", color: "all", hasPhone: false, hasCpf: false };
+  updateProfessionalDetailsFilterVisibility();
+  professionalDetailsState.view = "records";
+  renderProfessionalDetails();
+}
+
+function openProfessionalCampaigns() {
+  if (!professionalDetailsState) return;
+  professionalDetailsState.view = "campaigns";
+  renderProfessionalDetails();
+}
+
+function renderProfessionalDetails() {
+  if (!professionalDetailsState) return;
+  const baseProspects = getProfessionalBaseProspects();
+  renderProfessionalCampaignOptions(baseProspects);
+  const periodWindow = getProfessionalDetailsWindow();
+  const filteredProspects = getProfessionalFilteredProspects();
+  const selectedCampaign = professionalDetailsCampaign.value || "all";
+  const returnedCount = filteredProspects.filter((prospect) => prospect.returnedAt).length;
+  const purchasedCount = filteredProspects.filter((prospect) => prospect.purchasedAt).length;
+  const visitRate = filteredProspects.length ? Math.round((returnedCount / filteredProspects.length) * 100) : 0;
+  const purchaseRate = filteredProspects.length ? Math.round((purchasedCount / filteredProspects.length) * 100) : 0;
+  const rowsByCampaign = new Map();
+  filteredProspects.forEach((prospect) => {
+    const tags = (prospect.tags?.length ? prospect.tags : ["Sem campanha"]).filter((tag) => {
+      const key = getCampaignKey(tag === "Sem campanha" ? "" : tag);
+      return selectedCampaign === "all" || key === selectedCampaign;
+    });
+    tags.forEach((tag) => {
+      const key = getCampaignKey(tag === "Sem campanha" ? "" : tag);
+      if (!rowsByCampaign.has(key)) {
+        rowsByCampaign.set(key, { key, label: tag, made: 0, returned: 0, purchased: 0 });
+      }
+      const row = rowsByCampaign.get(key);
+      row.made += 1;
+      if (prospect.returnedAt) row.returned += 1;
+      if (prospect.purchasedAt) row.purchased += 1;
+    });
+  });
+  const rows = Array.from(rowsByCampaign.values()).sort((first, second) => {
+    return second.made - first.made || second.returned - first.returned || second.purchased - first.purchased || first.label.localeCompare(second.label, "pt-BR");
+  });
+
+  professionalDetailsTitle.textContent = `${professionalDetailsState.professional.name} - ${professionalDetailsState.store.name}`;
+  professionalDetailsSummary.innerHTML = `
+    <div><strong>${filteredProspects.length}</strong><span>Feitas</span></div>
+    <div><strong>${returnedCount}</strong><span>Vieram à loja</span></div>
+    <div><strong>${purchasedCount}</strong><span>Compraram</span></div>
+    <div><strong>${visitRate}% / ${purchaseRate}%</strong><span>Visita / compra</span></div>
+  `;
+
+  if (professionalDetailsState.view === "records") {
+    const selectedCampaignLabel = getProfessionalCampaignLabel(selectedCampaign);
+    const sortedRecords = [...filteredProspects].sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt));
+    professionalDetailsCampaigns.innerHTML = `
+      <div class="professional-details-campaign-title">
+        <div>
+          <strong>Registros do profissional</strong>
+          <span>${selectedCampaignLabel} | ${formatWindowLabel(periodWindow)} | ${sortedRecords.length} registros</span>
+        </div>
+        <button class="professional-details-ghost-button professional-details-back-campaigns" type="button">Voltar para campanhas</button>
+      </div>
+      ${renderProfessionalRecordFilters()}
+      <div class="professional-record-list"></div>
+    `;
+    professionalDetailsCampaigns.querySelector(".professional-details-back-campaigns")?.addEventListener("click", openProfessionalCampaigns);
+    bindProfessionalRecordFilters();
+    const list = professionalDetailsCampaigns.querySelector(".professional-record-list");
+    if (sortedRecords.length) sortedRecords.forEach((prospect) => list.append(createProfessionalRecordCard(prospect)));
+    else list.innerHTML = `<p class="professional-details-empty">Nenhum registro encontrado com esses filtros.</p>`;
+    return;
+  }
+
+  professionalDetailsCampaigns.innerHTML = `
+    <div class="professional-details-campaign-title">
+      <div>
+        <strong>Métricas por campanha</strong>
+        <span>${formatWindowLabel(periodWindow)} | ${filteredProspects.length} registros filtrados</span>
+      </div>
+      <button class="professional-details-action-button professional-details-all-records" type="button">Todos os registros</button>
+    </div>
+    <div class="professional-details-campaign-head">
+      <strong>Campanha</strong>
+      <span>Feitas</span>
+      <span>Vieram</span>
+      <span>Compraram</span>
+      <span>Visita</span>
+      <span>Compra</span>
+    </div>
+    ${
+      rows.length
+        ? rows.map((row) => {
+            const rowVisitRate = row.made ? Math.round((row.returned / row.made) * 100) : 0;
+            const rowPurchaseRate = row.made ? Math.round((row.purchased / row.made) * 100) : 0;
+            return `
+              <button class="professional-details-campaign-row" type="button" value="${escapeHtml(row.key)}">
+                <strong>${escapeHtml(row.label)}</strong>
+                <span><b>${row.made}</b><small>feitas</small></span>
+                <span><b>${row.returned}</b><small>vieram</small></span>
+                <span><b>${row.purchased}</b><small>compraram</small></span>
+                <em>${rowVisitRate}%</em>
+                <em>${rowPurchaseRate}%</em>
+              </button>
+            `;
+          }).join("")
+        : `<p class="professional-details-empty">Nenhuma campanha encontrada com esses filtros.</p>`
+    }
+  `;
+  professionalDetailsCampaigns.querySelector(".professional-details-all-records")?.addEventListener("click", () => openProfessionalRecords("all"));
+  professionalDetailsCampaigns.querySelectorAll(".professional-details-campaign-row").forEach((button) => {
+    button.addEventListener("click", () => openProfessionalRecords(button.value));
+  });
+}
+
+function resetProfessionalDetailsFilters() {
+  const now = new Date();
+  professionalDetailsPeriod.value = "current";
+  professionalDetailsDate.value = formatDateInputValue(now);
+  professionalDetailsWeek.value = formatWeekInputValue(now);
+  professionalDetailsMonth.value = formatMonthInputValue(now);
+  professionalDetailsStatus.value = "all";
+  professionalDetailsCampaign.innerHTML = `<option value="all">Todas as campanhas</option>`;
+  professionalDetailsCampaign.value = "all";
+  updateProfessionalDetailsFilterVisibility();
+}
+
+function setProfessionalDetailsOpen(isOpen, context = null) {
+  if (!isOpen) {
+    professionalDetailsState = null;
+    professionalDetailsOverlay.hidden = true;
+    syncModalScrollLock();
+    return;
+  }
+  professionalDetailsState = context;
+  professionalDetailsState.view = "campaigns";
+  resetProfessionalDetailsFilters();
+  renderProfessionalDetails();
+  professionalDetailsOverlay.hidden = false;
+  syncModalScrollLock();
+  professionalDetailsClose.focus();
 }
 
 function getAnalysisProspects() {
@@ -662,6 +1113,8 @@ function buildSearchText(prospect) {
     prospect.cpf,
     prospect.notes,
     prospect.professionalName,
+    prospect.purchaseOs,
+    formatCurrency(prospect.purchaseValue),
     ...(prospect.tags || []),
     prospect.color,
     getColorLabel(prospect.color),
@@ -999,18 +1452,19 @@ function createPeriodButton(store, period, label, selectedPeriod) {
   return button;
 }
 
-function createProfessionalPerformance(store, periodProspects) {
+function createProfessionalPerformance(store, periodProspects, periodWindow = null) {
   const panel = document.createElement("section");
   panel.className = "admin-professional-performance";
   panel.innerHTML = `
     <div class="admin-professional-performance-header">
-      <h4>Desempenho por profissional</h4>
-      <span>Feitas, viram, compraram e compra</span>
+      <h4>Profissionais</h4>
+      <span>Feitas, vieram, compraram e taxas</span>
     </div>
     <div class="admin-professional-list"></div>
   `;
   const list = panel.querySelector(".admin-professional-list");
   const statsByKey = new Map();
+  const canOpenDetails = Boolean(store.id);
 
   (store.professionals || []).forEach((professional) => {
     statsByKey.set(professional.id, {
@@ -1020,6 +1474,7 @@ function createProfessionalPerformance(store, periodProspects) {
       returned: 0,
       purchased: 0,
       isActive: professional.isActive,
+      campaigns: new Map(),
     });
   });
 
@@ -1036,12 +1491,21 @@ function createProfessionalPerformance(store, periodProspects) {
         returned: 0,
         purchased: 0,
         isActive: true,
+        campaigns: new Map(),
       });
     }
     const stats = statsByKey.get(key);
     stats.made += 1;
     if (prospect.returnedAt) stats.returned += 1;
     if (prospect.purchasedAt) stats.purchased += 1;
+    (prospect.tags?.length ? prospect.tags : ["Sem campanha"]).forEach((tag) => {
+      const campaignKey = normalize(tag);
+      if (!stats.campaigns.has(campaignKey)) stats.campaigns.set(campaignKey, { label: tag, made: 0, returned: 0, purchased: 0 });
+      const campaign = stats.campaigns.get(campaignKey);
+      campaign.made += 1;
+      if (prospect.returnedAt) campaign.returned += 1;
+      if (prospect.purchasedAt) campaign.purchased += 1;
+    });
   });
 
   const rows = Array.from(statsByKey.values())
@@ -1058,16 +1522,99 @@ function createProfessionalPerformance(store, periodProspects) {
 
   rows.forEach((stats) => {
     const conversion = stats.made ? Math.round((stats.purchased / stats.made) * 100) : 0;
+    const visitRate = stats.made ? Math.round((stats.returned / stats.made) * 100) : 0;
+    const campaignPreview = Array.from(stats.campaigns.values())
+      .sort((first, second) => second.made - first.made || first.label.localeCompare(second.label, "pt-BR"))
+      .slice(0, 3)
+      .map((campaign) => `${escapeHtml(campaign.label)} ${campaign.made}`)
+      .join(" / ");
     const row = document.createElement("div");
     row.className = "admin-professional-row";
     row.innerHTML = `
-      <strong>${escapeHtml(stats.name)}</strong>
-      <span><b>${stats.made}</b> feitas</span>
-      <span><b>${stats.returned}</b> viram</span>
-      <span><b>${stats.purchased}</b> compraram</span>
+      <div class="admin-professional-name">
+        <strong>${escapeHtml(stats.name)}</strong>
+        <small>${campaignPreview || "Sem campanha no período"}</small>
+      </div>
+      <div class="admin-professional-metrics">
+        <span><b>${stats.made}</b><small>feitas</small></span>
+        <span><b>${stats.returned}</b><small>vieram</small></span>
+        <span><b>${stats.purchased}</b><small>compraram</small></span>
+      </div>
+      <div class="admin-professional-actions">
+        <div class="admin-professional-rates">
+          <span>${visitRate}% visita</span>
+          <span>${conversion}% compra</span>
+        </div>
+        ${canOpenDetails ? `<button class="admin-professional-list-button" type="button">Listar</button>` : ""}
+      </div>
+    `;
+    row.querySelector(".admin-professional-list-button")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setProfessionalDetailsOpen(true, {
+        store,
+        professional: { id: stats.id || "", name: stats.name },
+        periodWindow: periodWindow || getPeriodWindow("monthly"),
+      });
+    });
+    list.append(row);
+  });
+
+  return panel;
+}
+
+function createCampaignPerformance(store, periodProspects) {
+  const panel = document.createElement("section");
+  panel.className = "admin-campaign-performance";
+  panel.innerHTML = `
+    <div class="admin-campaign-performance-header">
+      <h4>Campanhas</h4>
+      <span>Feitas, vieram e compraram por etiqueta</span>
+    </div>
+    <div class="admin-campaign-performance-list"></div>
+  `;
+  const list = panel.querySelector(".admin-campaign-performance-list");
+  const rowsByKey = new Map();
+
+  (store.tags || []).forEach((tag) => {
+    rowsByKey.set(normalize(tag), { label: tag, made: 0, returned: 0, purchased: 0 });
+  });
+
+  periodProspects.forEach((prospect) => {
+    const tags = prospect.tags?.length ? prospect.tags : ["Sem campanha"];
+    tags.forEach((tag) => {
+      const key = normalize(tag);
+      if (!rowsByKey.has(key)) rowsByKey.set(key, { label: tag, made: 0, returned: 0, purchased: 0 });
+      const row = rowsByKey.get(key);
+      row.made += 1;
+      if (prospect.returnedAt) row.returned += 1;
+      if (prospect.purchasedAt) row.purchased += 1;
+    });
+  });
+
+  const rows = Array.from(rowsByKey.values())
+    .filter((row) => row.made > 0 || normalize(row.label) !== "sem campanha")
+    .sort((first, second) => second.made - first.made || second.returned - first.returned || second.purchased - first.purchased || first.label.localeCompare(second.label, "pt-BR"));
+
+  if (!rows.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-professional-empty";
+    empty.textContent = "Nenhuma campanha neste período.";
+    list.append(empty);
+    return panel;
+  }
+
+  rows.slice(0, 6).forEach((row) => {
+    const conversion = row.made ? Math.round((row.purchased / row.made) * 100) : 0;
+    const item = document.createElement("div");
+    item.className = "admin-campaign-performance-row";
+    item.innerHTML = `
+      <strong>${escapeHtml(row.label)}</strong>
+      <span><b>${row.made}</b><small>feitas</small></span>
+      <span><b>${row.returned}</b><small>vieram</small></span>
+      <span><b>${row.purchased}</b><small>compraram</small></span>
       <em>${conversion}%</em>
     `;
-    list.append(row);
+    list.append(item);
   });
 
   return panel;
@@ -1216,8 +1763,11 @@ function renderAnalysisProfessionalPerformance() {
   const professionals = currentContext?.type === "admin" && analysisScopeStore
     ? analysisScopeStore.professionals || []
     : availableProfessionals;
+  const professionalStore = currentContext?.type === "admin" && analysisScopeStore
+    ? analysisScopeStore
+    : { professionals };
   analysisProfessionalPerformance.innerHTML = "";
-  analysisProfessionalPerformance.append(createProfessionalPerformance({ professionals }, getAnalysisProspects()));
+  analysisProfessionalPerformance.append(createProfessionalPerformance(professionalStore, getAnalysisProspects(), { start: null, end: null, label: "análise" }));
 }
 
 function renderAdminDashboard() {
@@ -1295,8 +1845,11 @@ function renderAdminDashboard() {
         <div><strong>${periodPurchases.length}</strong><span>Compraram neste ${periodWindow.label}</span></div>
         <div><strong>${purchaseConversion}%</strong><span>Compra sobre prospecções</span></div>
       </div>
-      <div class="admin-professional-performance-slot"></div>
-      <div class="admin-store-chart"></div>
+      <div class="admin-analysis-grid">
+        <div class="admin-professional-performance-slot"></div>
+        <div class="admin-campaign-performance-slot"></div>
+        <div class="admin-store-chart"></div>
+      </div>
     `;
     card.querySelector(".admin-store-metrics").append(
       createAdminMetric("Hoje", dailyProspects, dailyReturns, dailyPurchases),
@@ -1310,10 +1863,11 @@ function renderAdminDashboard() {
       createPeriodButton(store, "monthly", "Mês", selectedPeriod),
       createPeriodButton(store, "yearly", "Ano", selectedPeriod)
     );
-    card.querySelector(".admin-professional-performance-slot").append(createProfessionalPerformance(store, periodProspects));
+    card.querySelector(".admin-professional-performance-slot").append(createProfessionalPerformance(store, periodProspects, periodWindow));
     card.querySelector(".admin-store-chart").append(
       createTrendChart(storeProspects, selectedPeriod, storeGoal)
     );
+    card.querySelector(".admin-campaign-performance-slot").append(createCampaignPerformance(store, periodProspects));
     card.querySelector(".admin-store-analysis").addEventListener("click", (event) => {
       event.stopPropagation();
       setAnalysisOpen(true, store);
@@ -1457,8 +2011,20 @@ function renderProspects() {
         <strong>${escapeHtml(prospect.professionalName)}</strong>
       `;
     } else {
-      infoRow.remove();
+      professional.remove();
     }
+    if (prospect.purchasedAt && (prospect.purchaseValue || prospect.purchaseOs)) {
+      const purchaseInfo = document.createElement("div");
+      purchaseInfo.className = "card-purchase-info";
+      purchaseInfo.innerHTML = `
+        <i class="fa-solid fa-receipt" aria-hidden="true"></i>
+        <span>Compra</span>
+        ${prospect.purchaseValue ? `<strong>${escapeHtml(formatCurrency(prospect.purchaseValue))}</strong>` : ""}
+        ${prospect.purchaseOs ? `<em>${escapeHtml(formatPurchaseOs(prospect.purchaseOs))}</em>` : ""}
+      `;
+      infoRow.append(purchaseInfo);
+    }
+    if (!prospect.professionalName && !(prospect.purchasedAt && (prospect.purchaseValue || prospect.purchaseOs))) infoRow.remove();
     if (prospect.phone) meta.append(createChip(prospect.phone));
     if (prospect.cpf) meta.append(createChip(prospect.cpf));
     if (!prospect.phone && !prospect.cpf) meta.append(createChip("Sem telefone ou CPF"));
@@ -1474,7 +2040,11 @@ function renderProspects() {
     unmarkReturnButton.hidden = !prospect.returnedAt || Boolean(prospect.purchasedAt);
     if (prospect.purchasedAt) {
       purchaseBadge.innerHTML = `<i class="fa-solid fa-bag-shopping" aria-hidden="true"></i><span>Comprou</span>`;
-      purchaseBadge.title = formatDateTime(prospect.purchasedAt);
+      purchaseBadge.title = [
+        formatDateTime(prospect.purchasedAt),
+        prospect.purchaseValue ? formatCurrency(prospect.purchaseValue) : "",
+        prospect.purchaseOs ? formatPurchaseOs(prospect.purchaseOs) : "",
+      ].filter(Boolean).join(" · ");
       purchaseBadge.classList.add("is-purchased");
     } else {
       purchaseBadge.hidden = true;
@@ -1504,6 +2074,7 @@ function createChip(text, className = "meta-chip") {
 function fromDbProspect(row) {
   const purchasedAt = getPurchasedAt(row);
   const returnedAt = row.returned_at || purchasedAt || null;
+  const purchaseValue = Number(row.purchase_value ?? row.purchaseValue ?? 0);
   return {
     id: row.id,
     storeId: row.store_id,
@@ -1518,6 +2089,8 @@ function fromDbProspect(row) {
     createdAt: row.created_at,
     returnedAt,
     purchasedAt,
+    purchaseValue: Number.isFinite(purchaseValue) && purchaseValue > 0 ? purchaseValue : null,
+    purchaseOs: row.purchase_os || row.purchaseOs || "",
     updatedAt: row.updated_at,
   };
 }
@@ -1866,6 +2439,7 @@ async function logout() {
   resetForm();
   setAnalysisOpen(false);
   setAdminSettingsOpen(false);
+  setProfessionalDetailsOpen(false);
   renderProspects();
   showAuth();
 }
@@ -2100,6 +2674,7 @@ async function accessStoreFromAdmin(store) {
   saveStoreSession(currentContext);
   setAnalysisOpen(false);
   setAdminSettingsOpen(false);
+  setProfessionalDetailsOpen(false);
   setTopForContext();
   await refreshAppData();
   setTopForContext();
@@ -2110,6 +2685,7 @@ async function returnToAdmin() {
     await supabaseClient.rpc("store_logout", { p_token: currentContext.token });
   }
   clearStoreSession();
+  setProfessionalDetailsOpen(false);
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session?.user) {
     await logout();
@@ -2183,10 +2759,52 @@ async function unmarkReturned(id) {
   else await refreshAppData();
 }
 
-async function markPurchased(id) {
-  const { error } = await supabaseClient.rpc("store_mark_purchased", { p_token: currentContext.token, p_id: id });
-  if (error) formError.textContent = getSupabaseErrorMessage(error);
-  else await refreshAppData();
+function markPurchased(id) {
+  const prospect = prospects.find((item) => item.id === id);
+  if (!prospect) return;
+  pendingPurchaseId = id;
+  purchaseClientName.textContent = getDisplayName(prospect);
+  purchaseValueInput.value = prospect.purchaseValue ? formatCurrency(prospect.purchaseValue) : "";
+  purchaseOsInput.value = prospect.purchaseOs || "";
+  purchaseMessage.textContent = "";
+  setPurchaseDialogOpen(true);
+}
+
+async function submitPurchase(event) {
+  event.preventDefault();
+  const amount = parsePurchaseValue(purchaseValueInput.value);
+  const os = cleanPurchaseOs(purchaseOsInput.value);
+  if (!pendingPurchaseId) {
+    purchaseMessage.textContent = "Selecione uma prospecção para registrar a compra.";
+    return;
+  }
+  if (amount <= 0) {
+    purchaseMessage.textContent = "Informe um valor de compra maior que zero.";
+    purchaseValueInput.focus();
+    return;
+  }
+  if (!os) {
+    purchaseMessage.textContent = "Informe a OS da compra.";
+    purchaseOsInput.focus();
+    return;
+  }
+
+  confirmPurchaseBtn.disabled = true;
+  cancelPurchaseBtn.disabled = true;
+  const { error } = await supabaseClient.rpc("store_mark_purchased", {
+    p_token: currentContext.token,
+    p_id: pendingPurchaseId,
+    p_purchase_value: amount,
+    p_purchase_os: os,
+  });
+  confirmPurchaseBtn.disabled = false;
+  cancelPurchaseBtn.disabled = false;
+  if (error) {
+    purchaseMessage.textContent = getSupabaseErrorMessage(error);
+    return;
+  }
+  closePurchaseDialog();
+  await refreshAppData();
 }
 
 async function unmarkPurchased(id) {
@@ -2342,6 +2960,35 @@ confirmLogoutBtn.addEventListener("click", logout);
 logoutOverlay.addEventListener("click", (event) => {
   if (event.target === logoutOverlay) setLogoutConfirmOpen(false);
 });
+purchaseForm.addEventListener("submit", submitPurchase);
+cancelPurchaseBtn.addEventListener("click", closePurchaseDialog);
+purchaseOverlay.addEventListener("click", (event) => {
+  if (event.target === purchaseOverlay) closePurchaseDialog();
+});
+purchaseValueInput.addEventListener("input", () => {
+  purchaseValueInput.value = purchaseValueInput.value.replace(/[^\d.,]/g, "");
+  purchaseMessage.textContent = "";
+});
+purchaseValueInput.addEventListener("blur", () => {
+  const amount = parsePurchaseValue(purchaseValueInput.value);
+  if (amount > 0) purchaseValueInput.value = formatCurrency(amount);
+});
+purchaseOsInput.addEventListener("input", () => {
+  purchaseMessage.textContent = "";
+});
+professionalDetailsClose.addEventListener("click", () => setProfessionalDetailsOpen(false));
+professionalDetailsOverlay.addEventListener("click", (event) => {
+  if (event.target === professionalDetailsOverlay) setProfessionalDetailsOpen(false);
+});
+professionalDetailsPeriod.addEventListener("change", () => {
+  updateProfessionalDetailsFilterVisibility();
+  renderProfessionalDetails();
+});
+professionalDetailsDate.addEventListener("change", renderProfessionalDetails);
+professionalDetailsWeek.addEventListener("change", renderProfessionalDetails);
+professionalDetailsMonth.addEventListener("change", renderProfessionalDetails);
+professionalDetailsCampaign.addEventListener("change", renderProfessionalDetails);
+professionalDetailsStatus.addEventListener("change", renderProfessionalDetails);
 returnAdminBtn.addEventListener("click", returnToAdmin);
 adminSettingsBtn.addEventListener("click", () => setAdminSettingsOpen(true));
 adminSettingsClose.addEventListener("click", () => setAdminSettingsOpen(false));
