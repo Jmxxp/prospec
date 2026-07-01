@@ -239,6 +239,7 @@ body.is-dark-mode .professional-empty,
 body.is-dark-mode .professional-details-filters,
 body.is-dark-mode .professional-record-toolbar,
 body.is-dark-mode .bonus-filters,
+body.is-dark-mode .bonus-employee-row,
 body.is-dark-mode .bonus-record,
 body.is-dark-mode .professional-details-empty,
 body.is-dark-mode .tag-option,
@@ -313,6 +314,9 @@ body.is-dark-mode .professional-details-campaign-row b,
 body.is-dark-mode .professional-details-campaign-row em,
 body.is-dark-mode .bonus-summary strong,
 body.is-dark-mode .bonus-list-header strong,
+body.is-dark-mode .bonus-employee-main strong,
+body.is-dark-mode .bonus-employee-metric b,
+body.is-dark-mode .bonus-employee-amount b,
 body.is-dark-mode .bonus-record-main strong,
 body.is-dark-mode .bonus-record-purchase strong,
 body.is-dark-mode .admin-professional-row b,
@@ -343,6 +347,10 @@ body.is-dark-mode .professional-details-campaign-row small,
 body.is-dark-mode .bonus-store-name,
 body.is-dark-mode .bonus-list-header span,
 body.is-dark-mode .bonus-list-header em,
+body.is-dark-mode .bonus-employee-head,
+body.is-dark-mode .bonus-employee-main span,
+body.is-dark-mode .bonus-employee-metric small,
+body.is-dark-mode .bonus-employee-amount small,
 body.is-dark-mode .bonus-record-head,
 body.is-dark-mode .bonus-record-main span,
 body.is-dark-mode .bonus-record-contact,
@@ -945,9 +953,25 @@ body.is-store-context #adminSettingsOverlay {
 }
 
 .admin-store-bonus {
+  display: inline-grid;
+  align-content: center;
+  gap: 2px;
+  min-height: 42px;
+  padding-block: 5px;
   border-color: #f59e0b;
   background: #fffbeb;
   color: #92400e;
+}
+
+.admin-store-bonus span,
+.admin-store-bonus strong {
+  display: block;
+  line-height: 1;
+}
+
+.admin-store-bonus strong {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-store-bonus:hover {
@@ -2136,7 +2160,7 @@ body.is-dark-mode .professional-details-ghost-button {
 
 .bonus-filters {
   display: grid;
-  grid-template-columns: minmax(190px, 1.1fr) minmax(150px, 0.8fr) minmax(150px, 0.8fr) minmax(160px, 0.9fr);
+  grid-template-columns: minmax(220px, 360px);
   gap: 10px;
   align-items: end;
   padding: 12px;
@@ -2217,6 +2241,88 @@ body.is-dark-mode .professional-details-ghost-button {
   font-style: normal;
   font-weight: 900;
   white-space: nowrap;
+}
+
+.bonus-employee-head,
+.bonus-employee-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(120px, 0.48fr) minmax(140px, 0.56fr) minmax(130px, 0.5fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.bonus-employee-head {
+  min-height: 34px;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 860;
+  text-transform: uppercase;
+}
+
+.bonus-employee-list {
+  display: grid;
+  gap: 7px;
+}
+
+.bonus-employee-row {
+  min-height: 66px;
+  padding: 11px 14px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fffdf4, #ffffff);
+}
+
+.bonus-employee-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.bonus-employee-main strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.96rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bonus-employee-main span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bonus-employee-metric,
+.bonus-employee-amount {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 780;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bonus-employee-metric b,
+.bonus-employee-amount b {
+  color: #0f172a;
+  font-size: 1.02rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.bonus-employee-amount b {
+  color: #92400e;
+  font-size: 1.08rem;
+}
+
+.bonus-record-section-title {
+  margin-top: 6px;
 }
 
 .bonus-record-head,
@@ -3578,6 +3684,8 @@ body.is-dark-mode .created-date-block {
 
   .professional-record-toolbar,
   .professional-record-card .card-main,
+  .bonus-employee-head,
+  .bonus-employee-row,
   .bonus-record-head,
   .bonus-record {
     grid-template-columns: 1fr;
@@ -3611,6 +3719,8 @@ body.is-dark-mode .created-date-block {
   .professional-details-filters,
   .bonus-filters,
   .bonus-summary,
+  .bonus-employee-head,
+  .bonus-employee-row,
   .professional-details-campaign-row,
   .professional-record-toolbar,
   .bonus-record-head,
@@ -3626,8 +3736,11 @@ body.is-dark-mode .created-date-block {
 
   .admin-professional-actions,
   .admin-professional-rates,
-  .admin-campaign-performance-row span {
+  .admin-campaign-performance-row span,
+  .bonus-employee-metric,
+  .bonus-employee-amount {
     justify-items: start;
+    text-align: left;
   }
 
   .admin-professional-actions {

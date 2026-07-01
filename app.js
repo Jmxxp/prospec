@@ -23,6 +23,8 @@ const STORE_COLORS = {
 };
 const STORE_SESSION_KEY = "prospec.storeSession";
 const THEME_KEY = "prospec.theme";
+const BONUS_MIN_PURCHASE_VALUE = 300;
+const BONUS_AMOUNT_PER_SALE = 20;
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY, {
   auth: {
@@ -732,7 +734,7 @@ function closePurchaseDialog() {
   setPurchaseDialogOpen(false);
 }
 
-function setBonusOpen(isOpen, store = null, periodWindow = null) {
+function setBonusOpen(isOpen, store = null) {
   if (!isOpen) {
     bonusState = null;
     bonusOverlay.hidden = true;
@@ -742,10 +744,10 @@ function setBonusOpen(isOpen, store = null, periodWindow = null) {
   const now = new Date();
   bonusState = {
     storeId: store?.id || "",
-    periodWindow: periodWindow || { start: null, end: null, label: "todos" },
   };
-  bonusPeriod.value = periodWindow?.start ? "current" : "month";
-  bonusStatus.value = "returned";
+  bonusProfessional.value = "all";
+  bonusPeriod.value = "week";
+  bonusStatus.value = "purchased";
   bonusDate.value = formatDateInputValue(now);
   bonusWeek.value = formatWeekInputValue(now);
   bonusMonth.value = formatMonthInputValue(now);
@@ -805,6 +807,123 @@ function formatWindowLabel(periodWindow) {
   return startLabel === endLabel ? startLabel : `${startLabel} até ${endLabel}`;
 }
 
+function startOfBonusWeek(date) {
+  return startOfWeek(date);
+}
+
+function getCurrentBonusWindow(date = new Date()) {
+  const start = startOfBonusWeek(date);
+  const payday = addDays(start, 5);
+  return {
+    start,
+    end: addDays(payday, 1),
+    payday,
+    label: "semana atual",
+  };
+}
+
+function formatBonusPayday(date) {
+  return new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "short" })
+    .format(date)
+    .replace(".", "");
+}
+
+function isBonusQualifiedSale(prospect, periodWindow = getCurrentBonusWindow()) {
+  return Boolean(
+    prospect?.purchasedAt &&
+      Number(prospect.purchaseValue) > BONUS_MIN_PURCHASE_VALUE &&
+      isBetween(prospect.purchasedAt, periodWindow.start, periodWindow.end)
+  );
+}
+
+function resolveBonusProfessional(prospect, store) {
+  const professionals = store?.professionals || [];
+  const matchingProfessional = !prospect.professionalId && prospect.professionalName
+    ? professionals.find((professional) => normalize(professional.name) === normalize(prospect.professionalName))
+    : null;
+  if (prospect.professionalId || matchingProfessional?.id) {
+    const id = prospect.professionalId || matchingProfessional.id;
+    const professional = professionals.find((item) => item.id === id) || matchingProfessional;
+    return {
+      key: `id:${id}`,
+      value: `id:${id}`,
+      id,
+      name: professional?.name || prospect.professionalName || "Profissional sem nome",
+      isActive: professional?.isActive ?? true,
+      isMissing: false,
+    };
+  }
+  if (prospect.professionalName) {
+    const name = prospect.professionalName;
+    return {
+      key: `name:${normalize(name)}`,
+      value: `name:${normalize(name)}`,
+      id: "",
+      name,
+      isActive: true,
+      isMissing: false,
+    };
+  }
+  return {
+    key: "missing",
+    value: "missing",
+    id: "",
+    name: "Sem funcionário",
+    isActive: true,
+    isMissing: true,
+  };
+}
+
+function getBonusRows(store, periodWindow = getCurrentBonusWindow()) {
+  const rowsByKey = new Map();
+  (store?.professionals || []).forEach((professional) => {
+    rowsByKey.set(`id:${professional.id}`, {
+      key: `id:${professional.id}`,
+      value: `id:${professional.id}`,
+      id: professional.id,
+      name: professional.name,
+      isActive: professional.isActive,
+      isMissing: false,
+      count: 0,
+      purchaseTotal: 0,
+      bonusAmount: 0,
+      records: [],
+    });
+  });
+
+  prospects
+    .filter((prospect) => prospect.storeId === store?.id)
+    .filter((prospect) => isBonusQualifiedSale(prospect, periodWindow))
+    .forEach((prospect) => {
+      const professional = resolveBonusProfessional(prospect, store);
+      if (!rowsByKey.has(professional.key)) {
+        rowsByKey.set(professional.key, {
+          ...professional,
+          count: 0,
+          purchaseTotal: 0,
+          bonusAmount: 0,
+          records: [],
+        });
+      }
+      const row = rowsByKey.get(professional.key);
+      row.count += 1;
+      row.purchaseTotal += Number(prospect.purchaseValue) || 0;
+      row.bonusAmount = row.count * BONUS_AMOUNT_PER_SALE;
+      row.records.push(prospect);
+    });
+
+  return Array.from(rowsByKey.values())
+    .filter((row) => row.count > 0 || row.isActive)
+    .sort((first, second) => {
+      if (first.isMissing !== second.isMissing) return first.isMissing ? 1 : -1;
+      return second.bonusAmount - first.bonusAmount || second.count - first.count || first.name.localeCompare(second.name, "pt-BR");
+    });
+}
+
+function getBonusTotal(rows) {
+  return rows.reduce((sum, row) => sum + row.bonusAmount, 0);
+}
+
 function getCampaignKey(tag) {
   return tag ? `tag:${normalize(tag)}` : "empty";
 }
@@ -830,69 +949,32 @@ function getBonusStore() {
 }
 
 function updateBonusPeriodVisibility() {
-  const period = bonusPeriod.value;
-  bonusDateLabel.hidden = period !== "day";
-  bonusWeekLabel.hidden = period !== "week";
-  bonusMonthLabel.hidden = period !== "month";
+  bonusPeriod.closest("label").hidden = true;
+  bonusStatus.closest("label").hidden = true;
+  bonusDateLabel.hidden = true;
+  bonusWeekLabel.hidden = true;
+  bonusMonthLabel.hidden = true;
 }
 
 function getBonusPeriodWindow() {
-  const now = new Date();
-  const period = bonusPeriod.value;
-  if (period === "current") return bonusState?.periodWindow || { start: null, end: null, label: "período do card" };
-  if (period === "today") return { start: startOfDay(now), end: addDays(startOfDay(now), 1), label: "hoje" };
-  if (period === "day") {
-    const start = parseDateInput(bonusDate.value) || startOfDay(now);
-    return { start, end: addDays(start, 1), label: "dia selecionado" };
-  }
-  if (period === "week") {
-    const start = parseWeekInput(bonusWeek.value) || startOfWeek(now);
-    return { start, end: addDays(start, 7), label: "semana selecionada" };
-  }
-  if (period === "month") {
-    const start = parseMonthInput(bonusMonth.value) || startOfMonth(now);
-    return { start, end: addMonths(start, 1), label: "mês selecionado" };
-  }
-  if (period === "year") return { start: startOfYear(now), end: addYears(startOfYear(now), 1), label: "ano atual" };
-  return { start: null, end: null, label: "todos" };
+  return getCurrentBonusWindow();
 }
 
-function getBonusEventDate(prospect, status = bonusStatus.value) {
-  if (status === "purchased") return prospect.purchasedAt;
-  if (status === "returned") return prospect.returnedAt;
-  return prospect.createdAt;
+function getBonusEventDate(prospect) {
+  return prospect.purchasedAt;
 }
 
-function getBonusProfessionalOptions(store, storeProspects) {
+function getBonusProfessionalOptions(store, bonusRows) {
   const options = new Map();
-  (store.professionals || []).forEach((professional) => {
-    options.set(`id:${professional.id}`, { value: `id:${professional.id}`, label: professional.name, id: professional.id, name: professional.name });
+  (bonusRows || getBonusRows(store)).forEach((row) => {
+    options.set(row.value, { value: row.value, label: row.name, id: row.id, name: row.name });
   });
-  storeProspects.forEach((prospect) => {
-    if (prospect.professionalId) {
-      const professional = (store.professionals || []).find((item) => item.id === prospect.professionalId);
-      options.set(`id:${prospect.professionalId}`, {
-        value: `id:${prospect.professionalId}`,
-        label: professional?.name || prospect.professionalName || "Profissional sem nome",
-        id: prospect.professionalId,
-        name: professional?.name || prospect.professionalName || "",
-      });
-      return;
-    }
-    if (prospect.professionalName) {
-      const key = `name:${normalize(prospect.professionalName)}`;
-      if (!options.has(key)) options.set(key, { value: key, label: prospect.professionalName, id: "", name: prospect.professionalName });
-    }
-  });
-  if (storeProspects.some((prospect) => !prospect.professionalId && !prospect.professionalName)) {
-    options.set("missing", { value: "missing", label: "Sem profissional", id: "", name: "Sem profissional" });
-  }
   return Array.from(options.values()).sort((first, second) => first.label.localeCompare(second.label, "pt-BR"));
 }
 
-function renderBonusProfessionalOptions(store, storeProspects) {
+function renderBonusProfessionalOptions(store, bonusRows) {
   const selectedValue = bonusProfessional.value || "all";
-  const options = getBonusProfessionalOptions(store, storeProspects);
+  const options = getBonusProfessionalOptions(store, bonusRows);
   bonusProfessional.innerHTML = `<option value="all">Todos os funcionários</option>`;
   options.forEach((option) => {
     const element = document.createElement("option");
@@ -905,61 +987,45 @@ function renderBonusProfessionalOptions(store, storeProspects) {
     : "all";
 }
 
-function matchesBonusProfessional(prospect, store) {
+function matchesBonusProfessionalRow(row) {
   const selectedValue = bonusProfessional.value || "all";
   if (selectedValue === "all") return true;
-  if (selectedValue === "missing") return !prospect.professionalId && !prospect.professionalName;
-  if (selectedValue.startsWith("id:")) {
-    const id = selectedValue.slice(3);
-    if (prospect.professionalId === id) return true;
-    const professional = (store.professionals || []).find((item) => item.id === id);
-    return Boolean(professional && !prospect.professionalId && normalize(prospect.professionalName) === normalize(professional.name));
-  }
-  if (selectedValue.startsWith("name:")) return normalize(prospect.professionalName) === selectedValue.slice(5);
-  return true;
+  return row.value === selectedValue;
 }
 
-function matchesBonusStatus(prospect) {
-  const status = bonusStatus.value || "returned";
-  if (status === "returned") return Boolean(prospect.returnedAt);
-  if (status === "purchased") return Boolean(prospect.purchasedAt);
-  if (status === "not-returned") return !prospect.returnedAt;
-  if (status === "not-purchased") return !prospect.purchasedAt;
-  return true;
+function createBonusEmployeeRow(row) {
+  const item = document.createElement("article");
+  item.className = "bonus-employee-row";
+  item.innerHTML = `
+    <div class="bonus-employee-main">
+      <strong>${escapeHtml(row.name)}</strong>
+      <span>${row.count ? `${row.count} venda${row.count === 1 ? "" : "s"} acima de ${escapeHtml(formatCurrency(BONUS_MIN_PURCHASE_VALUE))}` : "Sem venda válida nesta semana"}</span>
+    </div>
+    <span class="bonus-employee-metric"><b>${row.count}</b><small>vendas</small></span>
+    <span class="bonus-employee-metric"><b>${escapeHtml(formatCurrency(row.purchaseTotal))}</b><small>vendido</small></span>
+    <span class="bonus-employee-amount"><b>${escapeHtml(formatCurrency(row.bonusAmount))}</b><small>a receber</small></span>
+  `;
+  return item;
 }
 
-function getBonusFilteredProspects() {
-  const store = getBonusStore();
-  if (!store) return [];
-  const periodWindow = getBonusPeriodWindow();
-  return prospects
-    .filter((prospect) => prospect.storeId === store.id)
-    .filter((prospect) => matchesBonusProfessional(prospect, store))
-    .filter(matchesBonusStatus)
-    .filter((prospect) => {
-      if (!periodWindow.start) return true;
-      return isBetween(getBonusEventDate(prospect), periodWindow.start, periodWindow.end);
-    })
-    .sort((first, second) => new Date(getBonusEventDate(second) || second.createdAt) - new Date(getBonusEventDate(first) || first.createdAt));
-}
-
-function createBonusRecordCard(prospect) {
+function createBonusRecordCard(prospect, store = getBonusStore()) {
   const card = document.createElement("article");
   card.className = "bonus-record";
   const eventDate = getBonusEventDate(prospect);
   const tags = prospect.tags?.length ? prospect.tags.join(", ") : "Sem campanha";
+  const professional = resolveBonusProfessional(prospect, store);
   card.innerHTML = `
     <div class="bonus-record-main">
       <strong>${escapeHtml(getDisplayName(prospect))}</strong>
-      <span>${escapeHtml(prospect.professionalName || "Sem profissional")} | ${escapeHtml(tags)}</span>
+      <span>${escapeHtml(professional.name)} | ${escapeHtml(tags)}</span>
     </div>
     <div class="bonus-record-contact">
       <span>${escapeHtml([prospect.phone, prospect.cpf].filter(Boolean).join(" | ") || "Sem telefone ou CPF")}</span>
-      <small>${eventDate ? `Evento ${formatDateTime(eventDate)}` : `Cadastro ${formatDateTime(prospect.createdAt)}`}</small>
+      <small>${eventDate ? `Venda ${formatDateTime(eventDate)}` : `Cadastro ${formatDateTime(prospect.createdAt)}`}</small>
     </div>
     <div class="bonus-record-status">
-      <span class="return-badge ${prospect.returnedAt ? "is-returned" : ""}">${prospect.returnedAt ? "Veio" : "Não veio"}</span>
-      <span class="purchase-badge ${prospect.purchasedAt ? "is-purchased" : ""}">${prospect.purchasedAt ? "Comprou" : "Não comprou"}</span>
+      <span class="purchase-badge is-purchased">Venda válida</span>
+      <span class="return-badge is-returned">${escapeHtml(formatCurrency(BONUS_AMOUNT_PER_SALE))} bônus</span>
     </div>
     <div class="bonus-record-purchase">
       <strong>${prospect.purchaseValue ? escapeHtml(formatCurrency(prospect.purchaseValue)) : "-"}</strong>
@@ -972,55 +1038,64 @@ function createBonusRecordCard(prospect) {
 function renderBonusPanel() {
   const store = getBonusStore();
   if (!store) return;
-  const storeProspects = prospects.filter((prospect) => prospect.storeId === store.id);
   updateBonusPeriodVisibility();
-  renderBonusProfessionalOptions(store, storeProspects);
-  const filteredProspects = getBonusFilteredProspects();
-  const returnedCount = filteredProspects.filter((prospect) => prospect.returnedAt).length;
-  const purchasedCount = filteredProspects.filter((prospect) => prospect.purchasedAt).length;
-  const purchaseTotal = filteredProspects.reduce((sum, prospect) => sum + (Number(prospect.purchaseValue) || 0), 0);
   const periodWindow = getBonusPeriodWindow();
-  const statusLabels = {
-    all: "todos os registros",
-    returned: "vieram à loja",
-    purchased: "compraram",
-    "not-returned": "não vieram",
-    "not-purchased": "não compraram",
-  };
-  const dateBaseLabels = {
-    all: "cadastro",
-    returned: "volta",
-    purchased: "compra",
-    "not-returned": "cadastro",
-    "not-purchased": "cadastro",
-  };
-  bonusTitle.textContent = "Bonificação";
-  bonusStoreName.textContent = `${store.name} | ${statusLabels[bonusStatus.value] || "registros"} por data de ${dateBaseLabels[bonusStatus.value] || "evento"}`;
+  const allRows = getBonusRows(store, periodWindow);
+  renderBonusProfessionalOptions(store, allRows);
+  const visibleRows = allRows.filter(matchesBonusProfessionalRow);
+  const filteredProspects = visibleRows
+    .flatMap((row) => row.records)
+    .sort((first, second) => new Date(getBonusEventDate(second) || second.createdAt) - new Date(getBonusEventDate(first) || first.createdAt));
+  const eligibleCount = visibleRows.reduce((sum, row) => sum + row.count, 0);
+  const purchaseTotal = visibleRows.reduce((sum, row) => sum + row.purchaseTotal, 0);
+  const bonusTotal = getBonusTotal(visibleRows);
+  const selectedProfessional = bonusProfessional.options[bonusProfessional.selectedIndex]?.textContent || "Todos os funcionários";
+  const periodLabel = `${formatWindowLabel(periodWindow)} | pagamento ${formatBonusPayday(periodWindow.payday)}`;
+  bonusTitle.textContent = "Bonificação semanal";
+  bonusStoreName.textContent = `${store.name} | ${periodLabel}`;
   bonusSummary.innerHTML = `
-    <div><strong>${filteredProspects.length}</strong><span>Registros</span></div>
-    <div><strong>${returnedCount}</strong><span>Vieram</span></div>
-    <div><strong>${purchasedCount}</strong><span>Compraram</span></div>
-    <div><strong>${escapeHtml(formatCurrency(purchaseTotal))}</strong><span>Total em compras</span></div>
+    <div><strong>${escapeHtml(formatCurrency(bonusTotal))}</strong><span>Total a pagar</span></div>
+    <div><strong>${eligibleCount}</strong><span>Vendas acima de ${escapeHtml(formatCurrency(BONUS_MIN_PURCHASE_VALUE))}</span></div>
+    <div><strong>${escapeHtml(formatCurrency(purchaseTotal))}</strong><span>Total vendido elegível</span></div>
+    <div><strong>${escapeHtml(formatCurrency(BONUS_AMOUNT_PER_SALE))}</strong><span>Por venda válida</span></div>
   `;
   bonusList.innerHTML = `
     <div class="bonus-list-header">
       <div>
-        <strong>Prospecções filtradas</strong>
-        <span>${formatWindowLabel(periodWindow)} | ${bonusProfessional.options[bonusProfessional.selectedIndex]?.textContent || "Todos os funcionários"}</span>
+        <strong>Valor por funcionário</strong>
+        <span>${selectedProfessional} | ${periodLabel}</span>
+      </div>
+      <em>${escapeHtml(formatCurrency(bonusTotal))}</em>
+    </div>
+    <div class="bonus-employee-head">
+      <span>Funcionário</span>
+      <span>Vendas válidas</span>
+      <span>Total vendido</span>
+      <span>A receber</span>
+    </div>
+    <div class="bonus-employee-list"></div>
+    <div class="bonus-list-header bonus-record-section-title">
+      <div>
+        <strong>Vendas consideradas</strong>
+        <span>Somente prospecções vendidas com valor registrado acima de ${escapeHtml(formatCurrency(BONUS_MIN_PURCHASE_VALUE))}</span>
       </div>
       <em>${filteredProspects.length} itens</em>
     </div>
     <div class="bonus-record-head">
       <span>Cliente</span>
-      <span>Contato / evento</span>
+      <span>Contato / venda</span>
       <span>Situação</span>
       <span>Compra</span>
     </div>
     <div class="bonus-record-list"></div>
   `;
-  const list = bonusList.querySelector(".bonus-record-list");
-  if (filteredProspects.length) filteredProspects.forEach((prospect) => list.append(createBonusRecordCard(prospect)));
-  else list.innerHTML = `<p class="professional-details-empty">Nenhuma prospecção encontrada com esses filtros.</p>`;
+  const employeeList = bonusList.querySelector(".bonus-employee-list");
+  if (visibleRows.length) visibleRows.forEach((row) => employeeList.append(createBonusEmployeeRow(row)));
+  else employeeList.innerHTML = `<p class="professional-details-empty">Nenhum funcionário encontrado para esta loja.</p>`;
+
+  const recordList = bonusList.querySelector(".bonus-record-list");
+  if (filteredProspects.length) filteredProspects.forEach((prospect) => recordList.append(createBonusRecordCard(prospect, store)));
+  else recordList.innerHTML = `<p class="professional-details-empty">Nenhuma venda elegível nesta semana.</p>`;
 }
 
 function getProfessionalBaseProspects() {
@@ -2034,6 +2109,7 @@ function renderAdminDashboard() {
   adminStoreGrid.innerHTML = "";
   adminStoreSettingsList.innerHTML = "";
   passwordAccountSelect.innerHTML = "";
+  const currentBonusWindow = getCurrentBonusWindow();
   stores.forEach((store) => {
     const option = document.createElement("option");
     option.value = store.id;
@@ -2056,6 +2132,9 @@ function renderAdminDashboard() {
     const monthlyReturns = countByPeriod(storeProspects, "returnedAt", "monthly");
     const monthlyPurchases = countByPeriod(storeProspects, "purchasedAt", "monthly");
     const goalStyle = getGoalStyle(dailyProspects, storeGoal);
+    const bonusRows = getBonusRows(store, currentBonusWindow);
+    const bonusTotal = getBonusTotal(bonusRows);
+    const bonusSales = bonusRows.reduce((sum, row) => sum + row.count, 0);
     const card = document.createElement("article");
     card.className = "admin-store-card";
     card.style.setProperty("--store-accent", storeTheme.value);
@@ -2070,7 +2149,10 @@ function renderAdminDashboard() {
           <span class="admin-goal-pill" style="background:${goalStyle.background}; color:${goalStyle.color}">${dailyProspects}/${storeGoal} hoje</span>
           <button class="admin-store-access" type="button">Acessar</button>
           <button class="admin-store-analysis" type="button">Análise</button>
-          <button class="admin-store-bonus" type="button">Bonificação</button>
+          <button class="admin-store-bonus" type="button" title="Bonificação de ${escapeHtml(formatWindowLabel(currentBonusWindow))}: ${bonusSales} venda${bonusSales === 1 ? "" : "s"} válida${bonusSales === 1 ? "" : "s"}">
+            <span>Bonificação</span>
+            <strong>${escapeHtml(formatCurrency(bonusTotal))}</strong>
+          </button>
           <button class="admin-store-delete" type="button" title="Excluir loja" aria-label="Excluir loja ${escapeHtml(store.name)}">
             <i class="fa-solid fa-trash" aria-hidden="true"></i>
           </button>
@@ -2113,7 +2195,7 @@ function renderAdminDashboard() {
     });
     card.querySelector(".admin-store-bonus").addEventListener("click", (event) => {
       event.stopPropagation();
-      setBonusOpen(true, store, periodWindow);
+      setBonusOpen(true, store);
     });
     card.querySelector(".admin-store-access").addEventListener("click", (event) => {
       event.stopPropagation();
